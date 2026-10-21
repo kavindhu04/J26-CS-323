@@ -1,0 +1,455 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compliance Coverage Score</title>
+<style>
+  /* Same navy/gold shell as the Component 1 tool. Layout: app-bar, test-case row with scope switch,
+     summary band (CCS + coverage by layer), harmonised control catalogue, conflict + gap registers,
+     then verification panels (test cases, baselines). */
+  :root{
+    --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fa; --border:#d7deea;
+    --fg:#152233; --muted:#586a86; --navy:#0e2a47; --navy-2:#17395c;
+    --gold:#9c6f12; --gold-ink:#7a5600;
+    --good:#1a8f5a; --warn:#b07d10; --caution:#cc6526; --bad:#bf3535;
+    --track:#e4e9f1;
+    --ff-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ff-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--ff-sans);line-height:1.5;margin:0}
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1100px;margin:0 auto}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  button,input{font-family:inherit}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .bar{background:var(--navy);color:#eaf1fb}
+  .bar .wrap{padding-block:16px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+  .brand .eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;color:#e2ac41}
+  .brand h1{font-size:21px;font-weight:600;letter-spacing:.2px}
+  .brand .sub{font-size:12.5px;color:#aec3dd}
+  .asset{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#aec3dd}
+  .asset b{font-size:13.5px;color:#eaf1fb;font-weight:600}
+
+  .scenarios{background:var(--surface-2);border-bottom:1px solid var(--border)}
+  .scenarios .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .scenarios .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+  .chipbtn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .chipbtn:hover{border-color:var(--gold)}
+  .chipbtn.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .chipbtn .exp{font-size:10.5px;color:var(--muted)}
+  .scope{margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-size:12.5px;cursor:pointer}
+  .scope input{width:16px;height:16px;accent-color:var(--gold)}
+
+  .summary{padding-block:22px;display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;min-width:0}
+  .cap{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .score{font-family:var(--ff-mono);font-size:68px;line-height:1;font-weight:600;letter-spacing:-1px;margin-top:6px}
+  .score small{font-size:22px;color:var(--muted);font-weight:500}
+  .meter{margin-top:16px;height:9px;border-radius:999px;background:var(--track);position:relative;overflow:hidden}
+  .meter>span{position:absolute;inset:0 auto 0 0;border-radius:999px}
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .stat{background:var(--surface-2);border-radius:9px;padding:7px 11px;font-size:11.5px;color:var(--muted)}
+  .stat b{display:block;font-family:var(--ff-mono);font-size:16px;color:var(--fg)}
+  .note{margin-top:12px;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+  .note.alert{color:var(--bad)}
+  .feeds{margin-top:14px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--border);padding-top:12px}
+  .card h3{font-size:13px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .prow{display:grid;grid-template-columns:170px 1fr 44px;gap:12px;align-items:center;margin-bottom:9px}
+  .prow .pn{font-size:13px}
+  .prow .pn small{color:var(--muted);font-family:var(--ff-mono);font-size:11px}
+  .prow .pt{height:14px;border-radius:5px;background:var(--track);overflow:hidden}
+  .prow .pt>span{display:block;height:100%;border-radius:5px;transition:width .35s ease}
+  .prow .pv{font-family:var(--ff-mono);font-size:13px;text-align:right}
+  .calc{font-size:12px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;font-family:var(--ff-mono)}
+
+  .sec-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .sec-head h2{font-size:16px;font-weight:600}
+  .sec-head .hint{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .ctl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 16px;min-width:0}
+  .ctl.na{opacity:.6}
+  .ctl .dh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .ctl .code{font-family:var(--ff-mono);font-size:11px;color:var(--muted)}
+  .ctl .dn{font-size:14px;font-weight:600}
+  .ctl .obj{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .ctl .meta{font-size:11px;color:var(--gold-ink);margin:6px 0 8px}
+  .links{width:100%;font-size:11.5px;margin:4px 0 8px}
+  .links td{padding:4px 6px;white-space:normal}
+  .rel{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--border);font-family:var(--ff-mono);white-space:nowrap}
+  .rel.Equivalent{color:var(--good);border-color:var(--good)}
+  .rel.Overlapping{color:var(--navy-2);border-color:var(--navy-2)}
+  .rel.Complementary{color:var(--muted)}
+  .rel.Unique{color:var(--gold-ink);border-color:var(--gold)}
+  .rel.Conditional{color:var(--caution);border-color:var(--caution)}
+  .rel.Conflicting{color:var(--bad);border-color:var(--bad)}
+  :root[data-theme="dark"] .rel.Overlapping{color:#9fc0e6;border-color:#9fc0e6}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rel.Overlapping{color:#9fc0e6;border-color:#9fc0e6}}
+  .appl{font-size:11.5px;padding:6px 8px;border-radius:7px;background:var(--surface-2);margin-bottom:8px}
+  .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:var(--surface-2);color:var(--muted);padding:5px 9px;font-size:11px;cursor:pointer;border-left:1px solid var(--border)}
+  .seg button:first-child{border-left:0}
+  .seg button[aria-pressed="true"]{color:#fff;font-weight:600}
+  .seg button.s0[aria-pressed="true"]{background:var(--bad)}
+  .seg button.s1[aria-pressed="true"]{background:var(--caution)}
+  .seg button.s2[aria-pressed="true"]{background:var(--good)}
+  .seg button:disabled{cursor:not-allowed}
+  .ev{width:100%;margin-top:6px;font-size:12px;padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg)}
+  .ev.missing{border-color:var(--bad)}
+  .warn{font-size:11px;color:var(--bad);margin-top:3px}
+  .reqev{font-size:11px;color:var(--muted);margin-top:5px}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:22px}
+  .panel p{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+  th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-family:var(--ff-mono)}
+  td.wrapc{white-space:normal;min-width:200px}
+  td.wrapn{white-space:normal;min-width:140px}
+  td .sub{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .pass{color:var(--good);font-weight:600}
+  .fail{color:var(--bad);font-weight:600}
+  .pri-High{color:var(--bad);font-weight:600}
+  .pri-Medium{color:var(--caution);font-weight:600}
+  .pri-Low{color:var(--muted);font-weight:600}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .btn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:9px 15px;border-radius:9px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--gold)}
+
+  pre.payload{background:var(--surface-2);border-radius:9px;padding:12px;font-family:var(--ff-mono);font-size:11.5px;overflow:auto;max-height:320px;margin:10px 0 0}
+
+  .foot{font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-block:16px 30px;margin-top:22px}
+  .foot code{font-family:var(--ff-mono);font-size:11px}
+  @media (max-width:860px){.summary{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.scope{margin-left:0}}
+  @media (max-width:420px){.prow{grid-template-columns:120px 1fr 40px}.score{font-size:58px}}
+  @media (prefers-reduced-motion:reduce){.prow .pt>span{transition:none}}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div class="bar"><div class="wrap">
+  <div class="brand">
+    <div class="eyebrow">J26-CS-323 · Component 3</div>
+    <h1>Compliance Coverage Score</h1>
+    <div class="sub">Regulatory compliance harmonisation — proof of concept</div>
+  </div>
+  <div class="asset">System under assessment
+    <b>Simulated AI-enabled credit-scoring system</b>
+  </div>
+</div></div>
+
+<div class="scenarios"><div class="wrap">
+  <span class="lab">Test cases</span>
+  <button class="chipbtn" data-sc="tc1">TC1 Well evidenced <span class="exp">→ 93%</span></button>
+  <button class="chipbtn" data-sc="tc2">TC2 Partly evidenced <span class="exp">→ 63%</span></button>
+  <button class="chipbtn" data-sc="tc3">TC3 Weakly evidenced <span class="exp">→ 22%</span></button>
+  <button class="chipbtn" data-sc="tc4">TC4 TC2 with EU in scope <span class="exp">→ 59%</span></button>
+  <label class="scope"><input type="checkbox" id="euScope"> EU market in scope</label>
+</div></div>
+
+<div class="wrap">
+  <section class="summary">
+    <div class="card">
+      <div class="cap">Compliance Coverage Score</div>
+      <div class="score tnum"><span id="ccs">0</span><small>%</small></div>
+      <div class="meter"><span id="meterFill"></span></div>
+      <div class="stats" id="stats"></div>
+      <div class="note" id="evNote"></div>
+      <div class="feeds">The CCS, the harmonised control set and the gap register are the output of Component 3. They feed the Component 4 governance decision. The CCS is a governance indicator, not a legal certification.</div>
+    </div>
+    <div class="card">
+      <h3>Coverage by asset layer</h3>
+      <div id="layerBars"></div>
+      <div class="calc" id="calc"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Harmonised control catalogue</h2>
+      <div class="hint">Each control traces back to its source requirements and their relationship</div></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Conflict register</h2></div>
+    <p>Potential conflicts are flagged for legal or supervisory interpretation. They are not resolved automatically, and both source requirements keep their original authority.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>ID</th><th>Control</th><th>Requirement A</th><th>Requirement B</th><th>Issue</th><th>State</th></tr></thead>
+      <tbody id="conflictBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Compliance gap register</h2>
+      <div class="hint">Priority = weight × (1 − status score)</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gap</th><th>Control · sources</th><th>Layer</th><th>Status</th><th>Priority</th><th>Evidence missing</th><th>Remediation · owner</th></tr></thead>
+      <tbody id="gapBody"></tbody>
+    </table></div>
+    <div class="actions"><button class="btn" id="copyBtn">Copy result summary</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Test case verification</h2></div>
+    <p>Each test case has its CCS and gap count worked out by hand from the formula in advance. The tool recomputes both and checks they match. TC4 uses the same evidence as TC2 but brings the EU market into scope, which shows the applicability term changing the result.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Test case</th><th>EU scope</th><th class="num">Expected CCS</th><th class="num">Actual CCS</th><th class="num">Expected gaps</th><th class="num">Actual gaps</th><th>Result</th><th class="num">Equal-weight CCS</th></tr></thead>
+      <tbody id="tcBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Baseline comparison (current test case)</h2></div>
+    <p><b>B1</b> assesses each framework on its own. <b>B2</b> is a basic crosswalk: it links requirements but has no applicability check, no weights and no conflict flagging. The proposed model harmonises, checks applicability, weights by importance and flags conflicts.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Approach</th><th class="num">Items assessed</th><th>Single result?</th><th>Applicability applied?</th><th>Conflicts flagged</th><th>Output</th></tr></thead>
+      <tbody id="baseBody"></tbody>
+    </table></div>
+    <details style="margin-top:12px;font-size:12px"><summary style="cursor:pointer;color:var(--muted)">B1 detail — coverage per framework, assessed separately</summary>
+      <div class="tbl-wrap"><table><thead><tr><th>Framework</th><th>Type</th><th class="num">Requirements</th><th class="num">Coverage</th></tr></thead><tbody id="b1Body"></tbody></table></div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Output to Component 4 (interface contract)</h2></div>
+    <p>The data Component 4 will receive at integration. It is shown here only; nothing is sent. Until integration, Component 4 works from simulated values.</p>
+    <div class="actions" style="margin-top:0"><button class="btn" id="payBtn">Copy payload (JSON)</button></div>
+    <pre class="payload" id="payload"></pre>
+  </section>
+
+  <div class="foot">
+    Formula: <code>CCS = Σ(Wᵢ · Aᵢ · Sᵢ) / Σ(Wᵢ · Aᵢ) × 100</code>. W = control weight (3 = high impact, 2 = standard; iteration 1, to be validated by expert review and sensitivity analysis). A = 1 if the control applies to the asset in the current scope, else 0. S = Met 1 · Partially met 0.5 · Not met 0. Relationship taxonomy: Equivalent, Overlapping, Complementary, Unique, Conditional, Potentially Conflicting. Clause references are indicative and must be checked against each source's current text. A mapping is not evidence of compliance: status comes only from the evidence assessment. Illustrative tool for PP1 — the asset, evidence and statuses are simulated, not a real institution's data.
+  </div>
+</div>
+
+<script>
+const SOURCES={
+  EUAI:{n:"EU AI Act (Reg. (EU) 2024/1689)",t:"Binding law",j:"EU",eu:true},
+  GDPR:{n:"GDPR (Reg. (EU) 2016/679)",t:"Binding law",j:"EU",eu:true},
+  FSAI:{n:"US Treasury FS AI RMF",t:"Sector guidance",j:"US"},
+  SR117:{n:"Fed/OCC model-risk guidance (SR 11-7)",t:"Supervisory guidance",j:"US"},
+  ISO:{n:"ISO/IEC 42001:2023",t:"International standard",j:"Intl"},
+  NAIR:{n:"NIST AI RMF 1.0",t:"Voluntary framework",j:"US"},
+  CSF:{n:"NIST CSF 2.0",t:"Voluntary framework",j:"US"},
+  FEAT:{n:"MAS FEAT principles",t:"Sector principles",j:"SG"},
+};
+const LAYERS=[{k:"L1",n:"Training data"},{k:"L2",n:"AI model"},{k:"L3",n:"Inputs & interfaces"},{k:"L4",n:"Outputs & decisions"}];
+// Harmonised controls. links: [source, requirement reference, relationship to the harmonised control]
+const CTL=[
+  {id:"HC-01",n:"AI risk-management process",obj:"Identify, assess and treat AI risks across the lifecycle",l:["L1","L2","L3","L4"],w:3,ev:"AI risk register and risk assessment",owner:"Model owner (1st line)",rem:"Set up an AI risk register and assess the system against it",
+    f:["risk register exists, not yet reviewed","risk register reviewed and approved"],
+    links:[["EUAI","Art. 9 Risk management system","Equivalent"],["ISO","Cl. 6.1 Actions to address risks","Equivalent"],["NAIR","GOVERN / MAP / MANAGE","Overlapping"],["FSAI","AI risk-management practices","Overlapping"],["SR117","Model risk-management framework","Complementary"]]},
+  {id:"HC-02",n:"Training-data governance and quality",obj:"Training data is relevant, accurate, documented and lawfully used",l:["L1"],w:3,ev:"Data sheet and data-quality report",owner:"Data engineering lead (1st line)",rem:"Document data lineage and run data-quality checks per release",
+    f:["data sheet without quality checks","data sheet plus quality report"],
+    links:[["EUAI","Art. 10 Data and data governance","Equivalent"],["ISO","Annex A.7 Data for AI systems","Equivalent"],["NAIR","MAP / MEASURE","Overlapping"],["GDPR","Art. 5(1)(c)–(d) Minimisation, accuracy","Complementary"]]},
+  {id:"HC-03",n:"Technical documentation and model inventory",obj:"The model is documented and listed in the model inventory",l:["L2"],w:2,ev:"Model card and inventory entry",owner:"Model owner (1st line)",rem:"Complete the model card and register the model",
+    f:["model card missing limitations","complete model card, in inventory"],
+    links:[["EUAI","Art. 11 Technical documentation","Equivalent"],["SR117","Model documentation and inventory","Overlapping"],["ISO","Annex A.6 AI system life cycle","Overlapping"]]},
+  {id:"HC-04",n:"Decision logging and record-keeping",obj:"Each decision is logged with inputs, model version and time",l:["L4"],w:2,ev:"Decision-log extract and retention policy",owner:"IT operations (1st line)",rem:"Log inputs and model version; make logs tamper-evident",
+    f:["outcomes logged, no model version","full decision log, retained"],
+    links:[["EUAI","Art. 12 Record-keeping","Equivalent"],["CSF","PR.PS Platform security (logging)","Overlapping"],["SR117","Records for model validation","Complementary"],["GDPR","Art. 5(1)(e) Storage limitation","Conflicting"]]},
+  {id:"HC-05",n:"Notice of AI use to customers",obj:"Customers are told AI is used and what drives the decision",l:["L4"],w:2,ev:"Customer disclosure notice",owner:"Retail credit product owner (1st line)",rem:"Publish a plain-language notice of the main decision factors",
+    f:["generic 'AI-assisted' statement","notice explains the key factors"],
+    links:[["EUAI","Art. 13 Transparency","Overlapping"],["GDPR","Art. 13–14 Information to data subjects","Overlapping"],["FEAT","Transparency principles","Overlapping"]]},
+  {id:"HC-06",n:"Human oversight and right to contest",obj:"A human can review, override and explain contested decisions",l:["L4"],w:3,ev:"Override procedure and appeal log",owner:"Head of credit operations (1st line)",rem:"Document the override and appeal procedure and log every override",
+    f:["overrides allowed, not logged","procedure, logged and reviewed"],
+    links:[["EUAI","Art. 14 Human oversight","Overlapping"],["GDPR","Art. 22 Automated decision-making","Overlapping"],["FEAT","Accountability principles","Complementary"],["NAIR","MANAGE","Complementary"]]},
+  {id:"HC-07",n:"Accuracy, robustness and cybersecurity",obj:"The model performs as intended and resists manipulation",l:["L2","L3"],w:3,ev:"Performance and robustness test report",owner:"Model owner (1st line)",rem:"Run robustness and adversarial tests each release",
+    f:["accuracy tested, no adversarial tests","accuracy and adversarial test report"],
+    links:[["EUAI","Art. 15 Accuracy, robustness, cybersecurity","Equivalent"],["NAIR","MEASURE","Overlapping"],["FSAI","Security and resilience","Overlapping"],["CSF","PROTECT / DETECT","Complementary"]]},
+  {id:"HC-08",n:"Fairness and bias testing",obj:"Outcomes are tested for bias across protected groups",l:["L1","L2"],w:3,ev:"Bias test report",owner:"Model owner (1st line)",rem:"Test bias across groups each release, with approved thresholds",
+    f:["one group tested, once","all relevant groups each release"],
+    links:[["FEAT","Fairness principles","Equivalent"],["NAIR","MEASURE (harmful bias)","Overlapping"],["EUAI","Art. 10 Examination for bias","Overlapping"]]},
+  {id:"HC-09",n:"Independent model validation",obj:"A party independent of development validates the model",l:["L2"],w:2,ev:"Independent validation report",owner:"Model risk management (2nd line)",rem:"Commission a 2nd-line validation before redeployment",
+    f:["self-review by developers","independent 2nd-line validation"],
+    links:[["SR117","Independent validation","Unique"],["ISO","Cl. 9.2 Internal audit","Complementary"]]},
+  {id:"HC-10",n:"Access control for model and pipeline",obj:"Only authorised, authenticated people can change the model or data",l:["L2","L3"],w:2,ev:"Access review and MFA configuration",owner:"IT security operations (1st line)",rem:"Enforce MFA and quarterly access reviews on the retraining pipeline",
+    f:["MFA on, no access review","MFA plus quarterly access review"],
+    links:[["CSF","PR.AA Identity and access control","Equivalent"],["GDPR","Art. 32 Security of processing","Overlapping"],["FSAI","Access and security controls","Overlapping"]]},
+  {id:"HC-11",n:"Data-protection impact assessment",obj:"A formal impact assessment is done before high-risk processing",l:["L1"],w:2,ev:"DPIA / FRIA document",owner:"Data protection officer (2nd line)",rem:"Complete a DPIA and fundamental-rights impact assessment",
+    f:["draft DPIA","approved DPIA"],
+    links:[["GDPR","Art. 35 DPIA","Conditional"],["EUAI","Art. 27 Fundamental-rights impact assessment","Conditional"]]},
+  {id:"HC-12",n:"AI governance roles and accountability",obj:"Named roles own the AI system and its oversight",l:["L1","L2","L3","L4"],w:2,ev:"Model ownership register and RACI",owner:"Chief risk officer (2nd line)",rem:"Name an accountable owner and publish the RACI",
+    f:["team named, no accountable role","named owner signed off"],
+    links:[["ISO","Cl. 5.3 Roles and responsibilities","Equivalent"],["NAIR","GOVERN","Equivalent"],["CSF","GV.RR Roles and responsibilities","Overlapping"],["FEAT","Accountability principles","Overlapping"],["FSAI","Governance and accountability","Overlapping"]]},
+];
+CTL.forEach((C,i)=>C.evCode="EV-"+String(i+1).padStart(2,"0"));
+const CONFLICTS=[
+  {id:"CF-01",ctl:"HC-04",a:["EUAI","Art. 12 — keep decision logs"],b:["GDPR","Art. 5(1)(e) — keep personal data no longer than necessary"],issue:"How long decision logs containing personal data may be kept"},
+];
+const ST=["Not met","Partially met","Met"],SV=[0,0.5,1];
+
+// Test cases: status per control in catalogue order (0 Not met, 1 Partial, 2 Met). Expected values worked by hand.
+const SCEN={
+  tc1:{n:"TC1 Well evidenced",eu:false,s:[2,2,2,2,1,2,2,2,1,2,2,2],expCCS:92.6,expGaps:2},
+  tc2:{n:"TC2 Partly evidenced",eu:false,s:[1,2,1,1,2,1,2,0,0,2,0,2],expCCS:63.0,expGaps:6},
+  tc3:{n:"TC3 Weakly evidenced",eu:false,s:[0,1,0,0,1,0,1,0,0,1,0,1],expCCS:22.2,expGaps:11},
+  tc4:{n:"TC4 TC2 with EU in scope",eu:true,s:[1,2,1,1,2,1,2,0,0,2,0,2],expCCS:58.6,expGaps:7},
+};
+
+const $=s=>document.querySelector(s);
+const state={sc:null,eu:false,s:[],ev:[]};
+
+function srcApplies(k,eu){return !SOURCES[k].eu||eu;}
+function applicable(C,eu){return C.links.some(L=>srcApplies(L[0],eu));}
+function compute(s,eu,equal){
+  let num=0,den=0;const gaps=[];
+  CTL.forEach((C,i)=>{
+    const A=applicable(C,eu)?1:0,W=equal?1:C.w,S=SV[s[i]];
+    num+=W*A*S;den+=W*A;
+    if(A&&s[i]<2)gaps.push({C,i,pri:C.w*(1-S)});
+  });
+  return {ccs:den?num/den*100:0,num,den,gaps};
+}
+function priLabel(p){return p>=3?"High":p>=1.5?"Medium":"Low";}
+
+function buildGrid(){
+  $("#grid").innerHTML=CTL.map((C,i)=>`<div class="ctl" id="c-${i}">
+    <div class="dh"><div><div class="code">${C.id} · weight ${C.w}</div><div class="dn">${C.n}</div><div class="obj">${C.obj}</div></div></div>
+    <div class="meta">Layers: ${C.l.join(", ")} · Required evidence: ${C.evCode} ${C.ev}</div>
+    <table class="links"><tbody>${C.links.map(L=>`<tr data-src="${L[0]}"><td>${SOURCES[L[0]].n}</td><td>${L[1]}</td><td><span class="rel ${L[2]}">${L[2]==="Conflicting"?"Potentially conflicting":L[2]}</span></td></tr>`).join("")}</tbody></table>
+    <div class="appl" id="ap-${i}"></div>
+    <div class="row2"><span style="font-size:12px;color:var(--muted)">Status</span>
+      <div class="seg" role="group" aria-label="${C.id} status">
+        <button class="s0" data-i="${i}" data-v="0">Not met</button><button class="s1" data-i="${i}" data-v="1">Partially met</button><button class="s2" data-i="${i}" data-v="2">Met</button>
+      </div></div>
+    <input class="ev" id="ev-${i}" placeholder="Evidence: ${C.evCode} ${C.ev} — what was found" data-ph="Evidence: ${C.evCode} ${C.ev} — what was found" aria-label="Evidence for ${C.id}">
+    <div class="warn" id="w-${i}" hidden>Status above Not met with no evidence recorded</div>
+  </div>`).join("");
+  CTL.forEach((C,i)=>$(`#ev-${i}`).addEventListener("input",e=>{state.ev[i]=e.target.value;render();}));
+}
+
+function render(){
+  const R=compute(state.s,state.eu,false);
+  $("#ccs").textContent=R.ccs.toFixed(1);
+  const col=`var(${R.ccs>=75?"--good":R.ccs>=50?"--warn":R.ccs>=25?"--caution":"--bad"})`;
+  const fill=$("#meterFill");fill.style.width=R.ccs+"%";fill.style.background=col;
+  const nApp=CTL.filter(C=>applicable(C,state.eu)).length;
+  $("#stats").innerHTML=`<div class="stat">Applicable controls<b>${nApp} / ${CTL.length}</b></div><div class="stat">Open gaps<b>${R.gaps.length}</b></div><div class="stat">Source requirements traced<b>${CTL.reduce((a,C)=>a+C.links.length,0)}</b></div>`;
+  let credited=0,backed=0;
+  CTL.forEach((C,i)=>{
+    const A=applicable(C,state.eu);
+    $(`#c-${i}`).classList.toggle("na",!A);
+    const out=C.links.filter(L=>!srcApplies(L[0],state.eu)).map(L=>L[0]);
+    $(`#ap-${i}`).innerHTML=A?`<b>A = 1</b> · applies to this asset${out.length?` (${[...new Set(out)].map(k=>SOURCES[k].n.split(" (")[0]).join(" and ")} out of scope)`:""}`:`<b>A = 0</b> · not applicable — every source is EU law and the EU market is out of scope`;
+    document.querySelectorAll(`button[data-i="${i}"]`).forEach(b=>{b.setAttribute("aria-pressed",(A&&+b.dataset.v===state.s[i]).toString());b.disabled=!A;});
+    const evIn=$(`#ev-${i}`),ev=(state.ev[i]||"").trim();
+    if(document.activeElement!==evIn)evIn.value=A?(state.ev[i]||""):"";
+    evIn.disabled=!A;
+    evIn.placeholder=A?evIn.dataset.ph:"Not applicable in the current scope — not assessed";
+    const missing=A&&state.s[i]>0&&!ev;
+    evIn.classList.toggle("missing",missing);$(`#w-${i}`).hidden=!missing;
+    if(A&&state.s[i]>0){credited++;if(ev)backed++;}
+  });
+  const en=$("#evNote");
+  en.textContent=credited?`Evidence: ${backed} of ${credited} credited controls have a recorded evidence item`:"Evidence: no controls credited yet";
+  en.classList.toggle("alert",backed<credited);
+
+  $("#layerBars").innerHTML=LAYERS.map(L=>{
+    let n=0,d=0;CTL.forEach((C,i)=>{if(C.l.includes(L.k)&&applicable(C,state.eu)){n+=C.w*SV[state.s[i]];d+=C.w;}});
+    const p=d?n/d*100:0,c=`var(${p>=75?"--good":p>=50?"--warn":p>=25?"--caution":"--bad"})`;
+    return `<div class="prow"><div class="pn">${L.n} <small>${L.k}</small></div><div class="pt"><span style="width:${p}%;background:${c}"></span></div><div class="pv tnum">${Math.round(p)}%</div></div>`;
+  }).join("");
+  $("#calc").innerHTML=`Σ(W·A·S) = ${R.num.toFixed(1)} &nbsp;·&nbsp; Σ(W·A) = ${R.den}<br>CCS = ${R.num.toFixed(1)} / ${R.den} × 100 = <b>${R.ccs.toFixed(1)}%</b>`;
+
+  $("#conflictBody").innerHTML=CONFLICTS.map(F=>{
+    const active=srcApplies(F.a[0],state.eu)&&srcApplies(F.b[0],state.eu);
+    return `<tr><td>${F.id}</td><td>${F.ctl}</td><td class="wrapc">${SOURCES[F.a[0]].n} — ${F.a[1]}</td><td class="wrapc">${SOURCES[F.b[0]].n} — ${F.b[1]}</td><td class="wrapc">${F.issue}</td>
+      <td class="${active?"fail":""}">${active?"Open — for legal interpretation":"Inactive — EU sources out of scope"}</td></tr>`;}).join("");
+
+  const gaps=R.gaps.slice().sort((a,b)=>b.pri-a.pri||a.i-b.i);
+  $("#gapBody").innerHTML=gaps.length?gaps.map((g,k)=>{const C=g.C,p=priLabel(g.pri);
+    return `<tr><td>G-${String(k+1).padStart(2,"0")}</td><td class="wrapc">${C.id} ${C.n}<span class="sub">${[...new Set(C.links.filter(L=>srcApplies(L[0],state.eu)).map(L=>SOURCES[L[0]].n.split(" (")[0]))].join(", ")}</span></td>
+      <td>${C.l.join(", ")}</td><td>${ST[state.s[g.i]]}</td><td class="pri-${p}">${p} (${g.pri})</td><td class="wrapn">${C.evCode} ${C.ev}</td><td class="wrapc">${C.rem}<span class="sub">Owner: ${C.owner}</span></td></tr>`;}).join("")
+    :`<tr><td colspan="7" style="color:var(--muted)">No open gaps.</td></tr>`;
+
+  buildBaselines(R);
+  $("#payload").textContent=JSON.stringify(payload(R,gaps),null,2);
+  $("#euScope").checked=state.eu;
+  document.querySelectorAll("[data-sc]").forEach(b=>b.classList.toggle("on",b.dataset.sc===state.sc));
+}
+
+function payload(R,gaps){
+  return {
+    component:"C3 Regulatory Compliance Harmonisation",
+    asset_id:"SIM-CREDIT-SCORING-01",
+    ccs_percent:Math.round(R.ccs*10)/10,
+    scope:{eu_market:state.eu},
+    applicable_controls:CTL.filter(C=>applicable(C,state.eu)).length,
+    gap_register:gaps.map((g,k)=>({gap:"G-"+String(k+1).padStart(2,"0"),control:g.C.id,name:g.C.n,status:ST[state.s[g.i]],priority:priLabel(g.pri),layers:g.C.l,owner:g.C.owner})),
+    open_conflicts:CONFLICTS.filter(F=>srcApplies(F.a[0],state.eu)&&srcApplies(F.b[0],state.eu)).map(F=>F.id),
+    metadata:{assessment_date:new Date().toISOString().slice(0,10),assessor:"PP1 demo",methodology_version:"CCS iteration 1",weighting_scheme:"3 = high impact, 2 = standard (pre-expert review)"},
+    limitation_statement:"Simulated evidence; clause references indicative; CCS is a governance indicator, not a legal certification."
+  };
+}
+function buildBaselines(R){
+  // B1: every framework on its own, every requirement assessed separately (no applicability step)
+  const per=Object.keys(SOURCES).map(k=>{
+    const reqs=[];CTL.forEach((C,i)=>C.links.forEach(L=>{if(L[0]===k)reqs.push(SV[state.s[i]]);}));
+    return {k,n:reqs.length,cov:reqs.length?reqs.reduce((a,b)=>a+b,0)/reqs.length*100:0};
+  });
+  const items=per.reduce((a,p)=>a+p.n,0);
+  // B2: one crosswalk list, unweighted, no applicability
+  let b2n=0,b2d=0;CTL.forEach((C,i)=>C.links.forEach(()=>{b2n+=SV[state.s[i]];b2d++;}));
+  const nApp=CTL.filter(C=>applicable(C,state.eu)).length;
+  const active=CONFLICTS.filter(F=>srcApplies(F.a[0],state.eu)&&srcApplies(F.b[0],state.eu)).length;
+  $("#baseBody").innerHTML=`
+    <tr><td>B1 Framework by framework</td><td class="num">${items}</td><td>No — ${per.length} separate results</td><td>No</td><td>0</td><td class="wrapn">${per.map(p=>Math.round(p.cov)+"%").join(" · ")}</td></tr>
+    <tr><td>B2 Basic crosswalk</td><td class="num">${items}</td><td>Yes (unweighted)</td><td>No</td><td>0</td><td>${(b2n/b2d*100).toFixed(1)}%</td></tr>
+    <tr><td><b>Proposed C3 model</b></td><td class="num">${nApp}</td><td>Yes (weighted)</td><td>Yes</td><td>${CONFLICTS.length} (${active} open)</td><td><b>${R.ccs.toFixed(1)}%</b> + ${R.gaps.length}-item gap register</td></tr>`;
+  $("#b1Body").innerHTML=per.map(p=>`<tr><td>${SOURCES[p.k].n}</td><td>${SOURCES[p.k].t}</td><td class="num">${p.n}</td><td class="num">${p.cov.toFixed(0)}%</td></tr>`).join("");
+}
+
+function buildTestCases(){
+  $("#tcBody").innerHTML=Object.entries(SCEN).map(([k,S])=>{
+    const R=compute(S.s,S.eu,false),E=compute(S.s,S.eu,true);
+    const ok=Math.abs(R.ccs-S.expCCS)<0.05&&R.gaps.length===S.expGaps;
+    return `<tr><td><button class="btn" data-sc="${k}" style="padding:4px 10px;font-size:12px">${S.n}</button></td><td>${S.eu?"Yes":"No"}</td>
+      <td class="num">${S.expCCS.toFixed(1)}%</td><td class="num">${R.ccs.toFixed(1)}%</td><td class="num">${S.expGaps}</td><td class="num">${R.gaps.length}</td>
+      <td class="${ok?"pass":"fail"}">${ok?"PASS":"FAIL"}</td><td class="num">${E.ccs.toFixed(1)}%</td></tr>`;}).join("");
+}
+
+function evidenceNote(C,v){return v===0?`${C.evCode} ${C.ev} — not provided`:`${C.evCode} ${C.ev} — ${C.f[v-1]}`;}
+function loadScenario(k){
+  const S=SCEN[k];state.sc=k;state.eu=S.eu;state.s=S.s.slice();state.ev=S.s.map((v,i)=>evidenceNote(CTL[i],v));render();
+}
+
+document.addEventListener("click",e=>{
+  const s=e.target.closest("[data-sc]");if(s){loadScenario(s.dataset.sc);return;}
+  const b=e.target.closest("button[data-i]");if(b){state.s[+b.dataset.i]=+b.dataset.v;state.sc=null;render();}
+});
+$("#payBtn").addEventListener("click",async()=>{
+  const done=()=>{$("#payBtn").textContent="Copied ✓";setTimeout(()=>$("#payBtn").textContent="Copy payload (JSON)",1600);};
+  try{await navigator.clipboard.writeText($("#payload").textContent);done();}
+  catch(_){const r=document.createRange();r.selectNode($("#payload"));getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}done();}
+});
+$("#euScope").addEventListener("change",e=>{state.eu=e.target.checked;state.sc=null;render();});
+$("#copyBtn").addEventListener("click",async()=>{
+  const R=compute(state.s,state.eu,false);
+  const lines=["Compliance Coverage Score — Simulated AI-enabled credit-scoring system",
+    `CCS: ${R.ccs.toFixed(1)}%  (EU market in scope: ${state.eu?"yes":"no"})`,`Open gaps: ${R.gaps.length}`,""];
+  CTL.forEach((C,i)=>lines.push(`${C.id} ${C.n} [w${C.w}]: ${applicable(C,state.eu)?ST[state.s[i]]:"Not applicable"} | evidence: ${(state.ev[i]||"").trim()||"NONE RECORDED"}`));
+  const txt=lines.join("\n");
+  const done=()=>{$("#copyBtn").textContent="Copied ✓";setTimeout(()=>$("#copyBtn").textContent="Copy result summary",1600);};
+  try{await navigator.clipboard.writeText(txt);done();}
+  catch(_){const p=document.createElement("pre");p.textContent=txt;p.style.position="fixed";p.style.left="-9999px";document.body.appendChild(p);
+    const r=document.createRange();r.selectNode(p);getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}document.body.removeChild(p);done();}
+});
+
+buildGrid();buildTestCases();loadScenario("tc2");
+</script>

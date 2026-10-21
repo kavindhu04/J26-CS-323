@@ -1,0 +1,411 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Governance Decision Scorecard</title>
+<style>
+  /* Same navy/gold shell as the Component 1 tool. Layout: app-bar, scenario row, simulated-input band,
+     decision summary (verdict + normalisation table), override rules, scorecard + accountability playbook,
+     then verification panels (scenario tests, AHP). */
+  :root{
+    --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fa; --border:#d7deea;
+    --fg:#152233; --muted:#586a86; --navy:#0e2a47; --navy-2:#17395c;
+    --gold:#9c6f12; --gold-ink:#7a5600;
+    --good:#1a8f5a; --warn:#b07d10; --caution:#cc6526; --bad:#bf3535;
+    --track:#e4e9f1;
+    --ff-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ff-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--ff-sans);line-height:1.5;margin:0}
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1100px;margin:0 auto}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  button,input,select{font-family:inherit}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .bar{background:var(--navy);color:#eaf1fb}
+  .bar .wrap{padding-block:16px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+  .brand .eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;color:#e2ac41}
+  .brand h1{font-size:21px;font-weight:600;letter-spacing:.2px}
+  .brand .sub{font-size:12.5px;color:#aec3dd}
+  .asset{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#aec3dd}
+  .asset b{font-size:13.5px;color:#eaf1fb;font-weight:600}
+
+  .scenarios{background:var(--surface-2);border-bottom:1px solid var(--border)}
+  .scenarios .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .scenarios .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+  .chipbtn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .chipbtn:hover{border-color:var(--gold)}
+  .chipbtn.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .chipbtn .exp{font-size:10.5px;color:var(--muted)}
+
+  .inputs{margin-top:22px;background:var(--surface);border:1px dashed var(--gold);border-radius:14px;padding:16px 20px}
+  .inputs .head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .inputs h2{font-size:15px;font-weight:600}
+  .badge{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;font-weight:700;color:var(--gold-ink);border:1px solid var(--gold);border-radius:999px;padding:2px 9px}
+  .ingrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .inp{background:var(--surface-2);border-radius:10px;padding:12px 14px}
+  .inp .src{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .inp .nm{font-size:13.5px;font-weight:600;margin-bottom:8px}
+  .inp label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:6px}
+  .inp input[type=number]{width:72px;font-family:var(--ff-mono);font-size:13px;padding:4px 6px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--fg);text-align:right}
+  .inp select{font-size:12.5px;padding:4px 6px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}
+  .inp input[type=range]{width:100%;accent-color:var(--gold)}
+
+  .summary{padding-block:22px;display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;min-width:0}
+  .cap{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .verdictBig{font-size:40px;font-weight:700;line-height:1.1;margin-top:8px}
+  .vsub{font-size:13px;margin-top:4px}
+  .score{font-family:var(--ff-mono);font-size:15px;margin-top:14px;color:var(--muted)}
+  .score b{color:var(--fg);font-size:22px}
+  .meter{margin-top:10px;height:9px;border-radius:999px;background:var(--track);position:relative;overflow:hidden}
+  .meter>span{position:absolute;inset:0 auto 0 0;border-radius:999px}
+  .ticks{position:relative;height:16px;margin-top:5px;font-size:9.5px;color:var(--muted)}
+  .ticks i{position:absolute;transform:translateX(-50%);font-style:normal}
+  .note{margin-top:12px;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+  .note.alert{color:var(--bad)}
+  .card h3{font-size:13px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
+  .calc{font-size:12px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;font-family:var(--ff-mono)}
+
+  .sec-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .sec-head h2{font-size:16px;font-weight:600}
+  .sec-head .hint{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:22px}
+  .panel p{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+  th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-family:var(--ff-mono)}
+  td.wrapc{white-space:normal;min-width:130px}
+  td.due{white-space:normal;min-width:96px}
+  .pass{color:var(--good);font-weight:600}
+  .fail{color:var(--bad);font-weight:600}
+  .sev-High{color:var(--bad);font-weight:600}
+  .sev-Medium{color:var(--caution);font-weight:600}
+  .sev-Low{color:var(--muted);font-weight:600}
+  .ov{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border);font-size:12.5px}
+  .ov:first-child{border-top:0}
+  .ov .st{font-family:var(--ff-mono);font-size:11px;min-width:64px}
+  .ahp-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .stat{background:var(--surface-2);border-radius:9px;padding:8px 12px;font-size:12px}
+  .stat b{display:block;font-family:var(--ff-mono);font-size:16px}
+  .panel details{margin-top:12px;font-size:12px}
+  .panel summary{cursor:pointer;color:var(--muted)}
+  .lod{font-size:11.5px;line-height:1.45}
+  .lod b{font-weight:600}
+  ul.play{margin:0;padding-left:18px;font-size:13px}
+  ul.play li{margin-bottom:4px}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .btn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:9px 15px;border-radius:9px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--gold)}
+
+  .foot{font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-block:16px 30px;margin-top:22px}
+  .foot code{font-family:var(--ff-mono);font-size:11px}
+  @media (max-width:860px){.summary{grid-template-columns:1fr}.ingrid{grid-template-columns:1fr}}
+  @media (max-width:420px){.verdictBig{font-size:34px}}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div class="bar"><div class="wrap">
+  <div class="brand">
+    <div class="eyebrow">J26-CS-323 · Component 4</div>
+    <h1>Governance Decision Scorecard</h1>
+    <div class="sub">Governance decision &amp; accountability — proof of concept</div>
+  </div>
+  <div class="asset">System under assessment
+    <b>Simulated AI-enabled credit-scoring system</b>
+  </div>
+</div></div>
+
+<div class="scenarios"><div class="wrap">
+  <span class="lab">Scenarios</span>
+  <button class="chipbtn" data-sc="s1">S1 Strong on all three <span class="exp">→ Approve</span></button>
+  <button class="chipbtn" data-sc="s2">S2 Moderate <span class="exp">→ Monitor</span></button>
+  <button class="chipbtn" data-sc="s3">S3 Trusted but exposed <span class="exp">→ Monitor</span></button>
+  <button class="chipbtn" data-sc="s4">S4 Hidden critical threat <span class="exp">→ Restrict</span></button>
+  <button class="chipbtn" data-sc="s5">S5 Compliance gap <span class="exp">→ Restrict</span></button>
+  <button class="chipbtn" data-sc="s6">S6 Weak on all three <span class="exp">→ Reject</span></button>
+</div></div>
+
+<div class="wrap">
+  <section class="inputs">
+    <div class="head"><h2>Inputs from Components 1–3</h2><span class="badge">Simulated — not yet integrated</span></div>
+    <div class="ingrid">
+      <div class="inp"><div class="src">From C1</div><div class="nm">Cyber Trust Index</div>
+        <input type="range" min="0" max="100" id="r-cti" aria-label="Cyber Trust Index">
+        <label>CTI (0–100) <input type="number" min="0" max="100" id="cti"></label></div>
+      <div class="inp"><div class="src">From C2</div><div class="nm">Cyber Risk Exposure</div>
+        <input type="range" min="0" max="100" id="r-crei" aria-label="Cyber Risk Exposure Index">
+        <label>CREI (0–100) <input type="number" min="0" max="100" id="crei"></label>
+        <label>Final band <select id="band"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label></div>
+      <div class="inp"><div class="src">From C3</div><div class="nm">Compliance Coverage</div>
+        <input type="range" min="0" max="100" id="r-ccs" aria-label="Compliance Coverage Score">
+        <label>CCS (%) <input type="number" min="0" max="100" id="ccs"></label></div>
+    </div>
+  </section>
+
+  <section class="summary">
+    <div class="card">
+      <div class="cap">Governance verdict</div>
+      <div class="verdictBig" id="verdict">—</div>
+      <div class="vsub" id="vsub"></div>
+      <div class="score">Governance score <b id="gscore">0</b>/100</div>
+      <div class="meter"><span id="meterFill"></span></div>
+      <div class="ticks"><i style="left:40%">40</i><i style="left:60%">60</i><i style="left:75%">75</i></div>
+      <div class="note" id="vnote"></div>
+    </div>
+    <div class="card">
+      <h3>Normalisation and weighting</h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Criterion</th><th class="num">Raw input</th><th>Normalised (higher = better)</th><th class="num">Weight</th><th class="num">Contribution</th></tr></thead>
+        <tbody id="normBody"></tbody>
+      </table></div>
+      <div class="calc" id="calc"></div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:0">
+    <div class="sec-head"><h2>Override rules</h2><div class="hint">Overrides can only make the verdict stricter</div></div>
+    <p>A weighted average can hide one very bad result. These rules stop that. Every rule is checked on every run, and any rule that fires is named in the decision.</p>
+    <div id="overrides"></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Cyber Governance Scorecard — prioritised controls</h2>
+      <div class="hint">Findings fed in from C1–C3 (simulated) · Three Lines of Defense routing</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>From</th><th>Finding</th><th>Severity</th><th>Control to apply</th><th>Reference</th><th>Accountability (3LoD)</th><th>Due</th></tr></thead>
+      <tbody id="ctlBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Accountability Playbook</h2></div>
+    <div id="playbook"></div>
+    <div class="actions"><button class="btn" id="copyBtn">Copy decision record</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Scenario testing</h2></div>
+    <p>Each scenario is a simulated combination of trust, risk and compliance results with its verdict fixed in advance. The tool decides each one and checks the result. The sensitivity column changes each criterion weight by ±10% and ±20%, one at a time, and checks whether the verdict holds.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Scenario</th><th class="num">CTI</th><th class="num">CREI</th><th>C2 band</th><th class="num">CCS</th><th class="num">Score</th><th>Score band</th><th>Override</th><th>Expected</th><th>Actual</th><th>Result</th><th>Sensitivity ±10–20%</th></tr></thead>
+      <tbody id="tcBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>How the weights are derived (AHP)</h2></div>
+    <p>Experts compare the three criteria two at a time on the Saaty 1–9 scale ("for approving a banking AI system, how much more important is A than B?"). Answers are combined by geometric mean, and the consistency ratio must be below 0.10. <b>The judgements below are illustrative placeholders</b>; they get replaced by the expert review responses.</p>
+    <div class="tbl-wrap"><table><thead id="ahpHead"></thead><tbody id="ahpBody"></tbody></table></div>
+    <div class="ahp-stats" id="ahpStats"></div>
+    <details><summary>Show the individual expert judgements (5 per pair)</summary>
+      <div class="tbl-wrap"><table><thead><tr><th>Pair (A vs B)</th><th>E1</th><th>E2</th><th>E3</th><th>E4</th><th>E5</th><th class="num">Geometric mean</th></tr></thead><tbody id="pairBody"></tbody></table></div>
+    </details>
+  </section>
+
+  <div class="foot">
+    Method (iteration 1): inputs are normalised so higher always means better governed — Trust = CTI, Risk = 100 − CREI, Compliance = CCS. <code>Governance score = Σ weight × normalised value</code>, with AHP weights. Score bands: <code>≥75 Approve · 60–74 Monitor · 40–59 Restrict · &lt;40 Reject</code>. The final verdict is the stricter of the score band and any override rule. Accountability follows the Three Lines model: 1st line owns and fixes, 2nd line oversees and challenges, 3rd line (internal audit) gives independent assurance. ATLAS mitigation IDs are indicative and should be checked against the current release. Inputs are simulated until integration with Components 1–3. Illustrative tool for PP1 — not a real institution's data.
+  </div>
+</div>
+
+<script>
+const CRIT=[{k:"T",n:"Trust (C1)"},{k:"R",n:"Risk (C2)"},{k:"C",n:"Compliance (C3)"}];
+const VERDICTS=["Approve","Monitor","Restrict","Reject"]; // index = strictness
+const VMEAN={
+  Approve:{t:"Deploy with standard monitoring",v:"--good"},
+  Monitor:{t:"Deploy with enhanced monitoring",v:"--warn"},
+  Restrict:{t:"Limit use until priority controls are in place",v:"--caution"},
+  Reject:{t:"Do not deploy / withdraw from use",v:"--bad"},
+};
+function scoreBand(g){return g>=75?"Approve":g>=60?"Monitor":g>=40?"Restrict":"Reject";}
+
+// ---- AHP: illustrative judgements, 5 experts per pair, order T, R, C ----
+const PAIRS={"0-1":[1/2,1,1/2,1,1],"0-2":[1,2,1,1,1],"1-2":[2,1,1,2,1]};
+const RI3=0.58; // Saaty random index for n = 3
+function ahp(){
+  const n=3,gm=a=>Math.pow(a.reduce((p,x)=>p*x,1),1/a.length);
+  const A=[...Array(n)].map(()=>Array(n).fill(1));
+  for(const k in PAIRS){const[i,j]=k.split("-").map(Number);A[i][j]=gm(PAIRS[k]);A[j][i]=1/A[i][j];}
+  let w=Array(n).fill(1/n);
+  for(let it=0;it<200;it++){const v=A.map(r=>r.reduce((s,x,j)=>s+x*w[j],0));const t=v.reduce((a,b)=>a+b);w=v.map(x=>x/t);}
+  const Aw=A.map(r=>r.reduce((s,x,j)=>s+x*w[j],0));
+  const lambda=Aw.reduce((s,x,i)=>s+x/w[i],0)/n,CI=(lambda-n)/(n-1),CR=CI/RI3;
+  return {A,w,lambda,CI,CR};
+}
+const AHP=ahp();
+// Weights rounded to 3 dp so the displayed weights sum to exactly 1 and the shown arithmetic adds up
+const W=AHP.w.map(x=>Math.round(x*1000)/1000);
+{const big=W.indexOf(Math.max(...W));W[big]=Math.round((1-W.reduce((a,b,i)=>i===big?a:a+b,0))*1000)/1000;}
+
+// Override rules: each returns a cap (the most lenient verdict allowed) when it fires
+const RULES=[
+  {id:"OR-1",text:"C2 band is Critical — exposure inconsistent with unrestricted operation",cap:"Restrict",test:x=>x.band==="Critical"},
+  {id:"OR-2",text:"C2 band is High — treatment needed before use is expanded",cap:"Monitor",test:x=>x.band==="High"},
+  {id:"OR-3",text:"CTI below 40 — C1 rates the system not trustworthy",cap:"Restrict",test:x=>x.cti<40},
+  {id:"OR-4",text:"CCS below 50% — most applicable controls are not evidenced",cap:"Restrict",test:x=>x.ccs<50},
+  {id:"OR-5",text:"Critical exposure combined with low trust or low compliance",cap:"Reject",test:x=>x.band==="Critical"&&(x.cti<40||x.ccs<50)},
+];
+function decide(x,w){
+  const norm=[x.cti,100-x.crei,x.ccs];
+  const t=w.reduce((a,b)=>a+b,0);
+  const g=norm.reduce((s,v,i)=>s+v*w[i]/t,0);
+  const sb=scoreBand(g);
+  let v=sb,by=null;
+  const fired=RULES.map(r=>({r,hit:r.test(x)}));
+  fired.forEach(f=>{if(f.hit&&VERDICTS.indexOf(f.r.cap)>VERDICTS.indexOf(v)){v=f.r.cap;by=f.r.id;}});
+  return {norm,g,sb,v,by,fired};
+}
+
+// Control library: finding → control, reference, Three Lines routing
+const CTRLS={
+  K1:{n:"Rate-limit and monitor model queries",ref:"ATLAS AML.M0004 Restrict Number of ML Model Queries",l1:"IT security operations",l2:"Information security risk",l3:"Internal audit"},
+  K2:{n:"Return less detail in outputs",ref:"ATLAS AML.M0002 Passive ML Output Obfuscation",l1:"Model owner",l2:"Model risk management",l3:"Internal audit"},
+  K3:{n:"Sanitise and verify training-data provenance",ref:"ATLAS AML.M0007 Sanitize Training Data",l1:"Data engineering lead",l2:"Model risk management",l3:"Internal audit"},
+  K4:{n:"Verify vendor / pre-trained model artefacts",ref:"ATLAS AML.M0014 Verify ML Artifacts",l1:"Vendor management + model owner",l2:"Third-party risk",l3:"Internal audit"},
+  K5:{n:"Validate inputs and detect adversarial inputs",ref:"ATLAS AML.M0015 Adversarial Input Detection",l1:"Application team",l2:"Information security risk",l3:"Internal audit"},
+  K6:{n:"Guardrails and input filtering on the assistant",ref:"OWASP LLM01 mitigations · D3FEND Input filtering",l1:"Digital channels team",l2:"Information security risk",l3:"Internal audit"},
+  K7:{n:"MFA and segregation on the retraining pipeline",ref:"D3FEND Multi-factor Authentication · HC-10",l1:"IT security operations",l2:"Information security risk",l3:"Internal audit"},
+  K8:{n:"Bias testing across groups each release",ref:"HC-08 · MAS FEAT Fairness",l1:"Model owner",l2:"Compliance",l3:"Internal audit"},
+  K9:{n:"Reason codes and adverse-action explanations",ref:"C1 Explainability · HC-05",l1:"Model owner",l2:"Compliance",l3:"Internal audit"},
+  K10:{n:"Tamper-evident decision logging",ref:"HC-04 · C1 Auditability",l1:"IT operations",l2:"Model risk management",l3:"Internal audit"},
+  K11:{n:"Independent model validation",ref:"HC-09 · SR 11-7",l1:"Model owner (provides evidence)",l2:"Model risk management (validates)",l3:"Internal audit"},
+  K13:{n:"Human oversight and appeal procedure",ref:"HC-06 · C1 Accountability",l1:"Head of credit operations",l2:"Compliance",l3:"Internal audit"},
+  K14:{n:"Drift monitoring with alert thresholds",ref:"C1 Robustness · NIST AI RMF Measure",l1:"Model owner",l2:"Model risk management",l3:"Internal audit"},
+  K15:{n:"AI risk register and named accountable owner",ref:"HC-01 · HC-12",l1:"Model owner",l2:"Chief risk officer",l3:"Internal audit"},
+};
+const SEV={High:3,Medium:2,Low:1};
+
+// Simulated scenarios: inputs + findings fed from C1–C3 (source, finding, severity, control)
+const SCEN={
+  s1:{n:"S1 Strong on all three",exp:"Approve",x:{cti:92,crei:7,band:"Low",ccs:93},
+    f:[["C2","T12 output-integrity in transit — residual 1×3","Low","K10"],["C3","HC-09 independent validation partially met","Low","K11"],["C3","HC-05 customer notice partially met","Low","K9"]]},
+  s2:{n:"S2 Moderate",exp:"Monitor",x:{cti:66,crei:28,band:"Medium",ccs:63},
+    f:[["C1","Fairness 50/100 — bias tested once","Medium","K8"],["C1","Explainability 67/100 — reasons for declines only","Medium","K9"],["C2","T03 bureau-feed compromise — residual 3×4","Medium","K3"],["C3","HC-04 decision logging partially met","Medium","K10"],["C3","HC-09 independent validation not met","Medium","K11"]]},
+  s3:{n:"S3 Trusted but exposed",exp:"Monitor",x:{cti:90,crei:39,band:"High",ccs:88},
+    f:[["C2","T08 evasion on online channel — residual 4×4 (C2 override OR-H)","High","K5"],["C2","T04 model extraction via public API — residual 3×4","Medium","K1"],["C2","T11 explanation leakage — residual 3×3","Medium","K2"],["C3","HC-06 human oversight partially met","Low","K13"]]},
+  s4:{n:"S4 Hidden critical threat",exp:"Restrict",x:{cti:82,crei:70,band:"Critical",ccs:85},
+    f:[["C2","T01 poisoning, impact 5, no control (C2 override OR-C)","High","K3"],["C2","T07 unverified third-party foundation model","High","K4"],["C2","T09 prompt injection on chat assistant","High","K6"],["C1","Robustness 67/100 — fallback never tested","Medium","K14"]]},
+  s5:{n:"S5 Compliance gap",exp:"Restrict",x:{cti:78,crei:30,band:"Medium",ccs:45},
+    f:[["C3","HC-06 human oversight and right to contest not met","High","K13"],["C3","HC-09 independent validation not met","Medium","K11"],["C3","HC-04 decision logging not met","Medium","K10"],["C3","HC-02 training-data governance partially met","Medium","K3"]]},
+  s6:{n:"S6 Weak on all three",exp:"Reject",x:{cti:8,crei:85,band:"Critical",ccs:22},
+    f:[["C1","Explainability 0/100 — score only, no reasons","High","K9"],["C1","Fairness 0/100 — never tested for bias","High","K8"],["C1","Auditability 0/100 — decisions not logged","High","K10"],["C2","T01 poisoning, impact 5, no control","High","K3"],["C3","HC-01 AI risk management not met","High","K15"],["C3","HC-06 human oversight not met","High","K13"]]},
+};
+
+const $=s=>document.querySelector(s);
+const state={sc:null,x:{},f:[]};
+
+function dueFor(verdict,sev){
+  if(verdict==="Reject")return sev==="High"?"Before any redeployment":"With remediation plan";
+  if(verdict==="Restrict")return sev==="High"?"Before restriction is lifted":sev==="Medium"?"30 days":"90 days";
+  if(verdict==="Monitor")return sev==="High"?"30 days":sev==="Medium"?"60 days":"Next review";
+  return sev==="High"?"60 days":"Next annual review";
+}
+const PLAY={
+  Approve:["Deploy the system; standard model monitoring applies","1st line closes any open Low findings by the next annual review","2nd line confirms the monitoring plan; reassess in 12 months","3rd line includes the system in the normal audit cycle"],
+  Monitor:["Deploy with enhanced monitoring: monthly drift and override reports to the 2nd line","1st line closes High and Medium findings within the due dates","2nd line reviews progress monthly and can escalate to Restrict","Reassess in 6 months, or sooner if a monitoring threshold is breached"],
+  Restrict:["Limit use: e.g. human review of every decline, or pause the exposed channel","1st line closes every High finding before the restriction is lifted","2nd line signs off that each High control is working, then reassesses","Risk committee is informed; 3rd line reviews the remediation evidence"],
+  Reject:["Do not deploy, or withdraw the system from use","Board risk committee is notified with this decision record","1st line produces a remediation plan covering every finding","Full reassessment (C1–C3) is required before the system can be resubmitted"],
+};
+
+function render(){
+  const x=state.x,D=decide(x,W);state.last=D;
+  ["cti","crei","ccs"].forEach(k=>{const n=$("#"+k),r=$("#r-"+k);if(document.activeElement!==n)n.value=x[k];r.value=x[k];});
+  $("#band").value=x.band;
+  const col=`var(${VMEAN[D.v].v})`;
+  $("#verdict").textContent=D.v;$("#verdict").style.color=col;
+  $("#vsub").textContent=VMEAN[D.v].t;
+  $("#gscore").textContent=D.g.toFixed(1);
+  const fill=$("#meterFill");fill.style.width=D.g+"%";fill.style.background=`var(${VMEAN[D.sb].v})`;
+  const vn=$("#vnote");
+  if(D.by){vn.textContent=`Score alone gives ${D.sb}; override ${D.by} makes the verdict ${D.v}.`;vn.classList.add("alert");}
+  else{vn.textContent=`Verdict set by the score (${D.g.toFixed(1)} falls in ${D.sb}).${D.fired.some(f=>f.hit)?" Overrides fired but were not stricter.":" No override fired."}`;vn.classList.remove("alert");}
+
+  const raw=[`${x.cti}`,`${x.crei} (${x.band})`,`${x.ccs}%`],how=["CTI as is","100 − CREI","CCS as is"];
+  $("#normBody").innerHTML=CRIT.map((c,i)=>`<tr><td>${c.n}</td><td class="num">${raw[i]}</td><td>${how[i]} = <b>${D.norm[i].toFixed(0)}</b></td><td class="num">${W[i].toFixed(3)}</td><td class="num">${(D.norm[i]*W[i]).toFixed(1)}</td></tr>`).join("");
+  $("#calc").innerHTML=`Score = ${CRIT.map((c,i)=>`${W[i].toFixed(3)}×${D.norm[i].toFixed(0)}`).join(" + ")} = <b>${D.g.toFixed(1)}</b> → ${D.sb}`;
+
+  $("#overrides").innerHTML=D.fired.map(f=>`<div class="ov"><div class="st ${f.hit?"fail":"pass"}">${f.hit?"FIRED":"not fired"}</div>
+    <div><b>${f.r.id}</b> → no better than ${f.r.cap}<br><span style="color:var(--muted)">${f.r.text}</span></div></div>`).join("");
+
+  const fs=state.f.map((f,i)=>({f,i})).sort((a,b)=>SEV[b.f[2]]-SEV[a.f[2]]||a.i-b.i);
+  $("#ctlBody").innerHTML=fs.length?fs.map(({f},k)=>{const C=CTRLS[f[3]];
+    return `<tr><td>P${k+1}</td><td>${f[0]}</td><td class="wrapc">${f[1]}</td><td class="sev-${f[2]}">${f[2]}</td><td class="wrapc">${C.n}</td><td class="wrapc">${C.ref}</td>
+      <td class="lod wrapc"><b>1st</b> ${C.l1}<br><b>2nd</b> ${C.l2}<br><b>3rd</b> ${C.l3}</td><td class="due">${dueFor(D.v,f[2])}</td></tr>`;}).join("")
+    :`<tr><td colspan="8" style="color:var(--muted)">No findings fed in.</td></tr>`;
+
+  $("#playbook").innerHTML=`<p><b style="color:${col}">${D.v}</b> — ${VMEAN[D.v].t}. Decision basis: score ${D.g.toFixed(1)} (${D.sb})${D.by?`, made stricter by ${D.by}`:""}.</p><ul class="play">${PLAY[D.v].map(t=>`<li>${t}</li>`).join("")}</ul>`;
+  document.querySelectorAll("[data-sc]").forEach(b=>b.classList.toggle("on",b.dataset.sc===state.sc));
+}
+
+function loadScenario(k){const S=SCEN[k];state.sc=k;state.x={...S.x};state.f=S.f.map(f=>f.slice());render();}
+
+function buildTestCases(){
+  $("#tcBody").innerHTML=Object.entries(SCEN).map(([k,S])=>{
+    const D=decide(S.x,W);const flips=[];
+    [0.8,0.9,1.1,1.2].forEach(m=>CRIT.forEach((c,i)=>{const w=W.slice();w[i]*=m;if(decide(S.x,w).v!==D.v)flips.push(`${c.n} ×${m}`);}));
+    return `<tr><td><button class="btn" data-sc="${k}" style="padding:4px 10px;font-size:12px">${S.n}</button></td>
+      <td class="num">${S.x.cti}</td><td class="num">${S.x.crei}</td><td>${S.x.band}</td><td class="num">${S.x.ccs}</td><td class="num">${D.g.toFixed(1)}</td><td>${D.sb}</td><td>${D.by||"—"}</td>
+      <td>${S.exp}</td><td><b>${D.v}</b></td><td class="${D.v===S.exp?"pass":"fail"}">${D.v===S.exp?"PASS":"FAIL"}</td>
+      <td>${flips.length?`<span class="fail">Changes under ${flips.join(", ")}</span>`:"<span class='pass'>Stable (12 of 12 variations)</span>"}</td></tr>`;}).join("");
+}
+function buildAHP(){
+  const short=["T","R","C"];
+  $("#ahpHead").innerHTML=`<tr><th></th>${short.map(s=>`<th class="num">${s}</th>`).join("")}<th class="num">Weight</th></tr>`;
+  $("#ahpBody").innerHTML=CRIT.map((c,i)=>`<tr><th>${c.n}</th>${AHP.A[i].map(x=>`<td class="num">${x.toFixed(2)}</td>`).join("")}<td class="num"><b>${(AHP.w[i]*100).toFixed(1)}%</b></td></tr>`).join("");
+  const ok=AHP.CR<0.10;
+  $("#ahpStats").innerHTML=`<div class="stat">λ<sub>max</sub><b>${AHP.lambda.toFixed(3)}</b></div>
+    <div class="stat">Consistency index (CI)<b>${AHP.CI.toFixed(4)}</b></div>
+    <div class="stat">Random index (RI, n=3)<b>${RI3.toFixed(2)}</b></div>
+    <div class="stat">Consistency ratio (CR)<b class="${ok?"pass":"fail"}">${AHP.CR.toFixed(4)} ${ok?"&lt; 0.10 ✓":"≥ 0.10 ✗"}</b></div>
+    <div class="stat">Rounded weights used<b>${W.map(w=>w.toFixed(3)).join(" / ")}</b></div>`;
+  const fmt=x=>x>=1?String(Math.round(x)):"1/"+Math.round(1/x);
+  $("#pairBody").innerHTML=Object.entries(PAIRS).map(([k,a])=>{const[i,j]=k.split("-").map(Number);
+    return `<tr><td>${CRIT[i].n} vs ${CRIT[j].n}</td>${a.map(x=>`<td>${fmt(x)}</td>`).join("")}<td class="num">${AHP.A[i][j].toFixed(3)}</td></tr>`;}).join("");
+}
+
+function clamp(v){v=parseFloat(v);return isNaN(v)?0:Math.max(0,Math.min(100,Math.round(v)));}
+function bandFromCrei(c){return c>=75?"Critical":c>=50?"High":c>=25?"Medium":"Low";}
+["cti","crei","ccs"].forEach(k=>{
+  const set=v=>{state.x[k]=clamp(v);
+    // CREI edits reset the band to the index band; C2 overrides can only raise it, so keep a stricter band chosen by hand
+    if(k==="crei"){const ib=bandFromCrei(state.x.crei),o=["Low","Medium","High","Critical"];if(o.indexOf(ib)>o.indexOf(state.x.band)||state.sc)state.x.band=ib;}
+    state.sc=null;render();};
+  $("#"+k).addEventListener("input",e=>set(e.target.value));
+  $("#r-"+k).addEventListener("input",e=>set(e.target.value));
+});
+// C2 overrides can only raise a band, so the band can never sit below the band its CREI implies
+$("#band").addEventListener("change",e=>{const o=["Low","Medium","High","Critical"],ib=bandFromCrei(state.x.crei);state.x.band=o.indexOf(e.target.value)<o.indexOf(ib)?ib:e.target.value;state.sc=null;render();});
+document.addEventListener("click",e=>{const s=e.target.closest("[data-sc]");if(s)loadScenario(s.dataset.sc);});
+$("#copyBtn").addEventListener("click",async()=>{
+  const D=state.last,x=state.x;
+  const lines=["Governance decision record — Simulated AI-enabled credit-scoring system",
+    `Verdict: ${D.v} (${VMEAN[D.v].t})`,
+    `Inputs (simulated): CTI ${x.cti} · CREI ${x.crei} (${x.band}) · CCS ${x.ccs}%`,
+    `Score: ${D.g.toFixed(1)} → ${D.sb} · weights T ${W[0]} / R ${W[1]} / C ${W[2]} (AHP CR ${AHP.CR.toFixed(4)})`,
+    `Overrides fired: ${D.fired.filter(f=>f.hit).map(f=>f.r.id).join(", ")||"none"}${D.by?` · decisive: ${D.by}`:""}`,"","Prioritised controls:"];
+  state.f.slice().sort((a,b)=>SEV[b[2]]-SEV[a[2]]).forEach((f,k)=>{const C=CTRLS[f[3]];lines.push(`  P${k+1} [${f[2]}] ${C.n} — 1st: ${C.l1}; 2nd: ${C.l2}; 3rd: ${C.l3}; due: ${dueFor(D.v,f[2])}`);});
+  const txt=lines.join("\n");
+  const done=()=>{$("#copyBtn").textContent="Copied ✓";setTimeout(()=>$("#copyBtn").textContent="Copy decision record",1600);};
+  try{await navigator.clipboard.writeText(txt);done();}
+  catch(_){const p=document.createElement("pre");p.textContent=txt;p.style.position="fixed";p.style.left="-9999px";document.body.appendChild(p);
+    const r=document.createRange();r.selectNode(p);getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}document.body.removeChild(p);done();}
+});
+
+buildTestCases();buildAHP();loadScenario("s4");
+</script>

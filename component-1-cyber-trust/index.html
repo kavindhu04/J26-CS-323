@@ -1,0 +1,494 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyber Trust Index</title>
+<style>
+  /* Layout: top navy app-bar, test-case row, summary band (score + dimension profile), assessment grid,
+     then the verification sections (test cases + AHP weights).
+     Palette: navy/gold brand (matches the J26-CS-323 deck) + reserved status colours for the verdict. */
+  :root{
+    --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fa; --border:#d7deea;
+    --fg:#152233; --muted:#586a86; --navy:#0e2a47; --navy-2:#17395c;
+    --gold:#9c6f12; --gold-ink:#7a5600;
+    --good:#1a8f5a; --warn:#b07d10; --caution:#cc6526; --bad:#bf3535;
+    --track:#e4e9f1;
+    --ff-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ff-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--ff-sans);line-height:1.5;margin:0}
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1100px;margin:0 auto}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  button{font-family:inherit}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* app bar */
+  .bar{background:var(--navy);color:#eaf1fb}
+  .bar .wrap{padding-block:16px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+  .brand .eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-ink);font-weight:600}
+  .brand h1{font-size:21px;font-weight:600;letter-spacing:.2px}
+  .brand .sub{font-size:12.5px;color:#aec3dd}
+  .asset{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#aec3dd}
+  .asset b{font-size:13.5px;color:#eaf1fb;font-weight:600}
+  .bar .eyebrow{color:#e2ac41}
+
+  /* scenario row */
+  .scenarios{background:var(--surface-2);border-bottom:1px solid var(--border)}
+  .scenarios .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .scenarios .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+  .chipbtn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .chipbtn:hover{border-color:var(--gold)}
+  .chipbtn.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .chipbtn .exp{font-size:10.5px;color:var(--muted)}
+  .chipbtn.reset{margin-left:auto;color:var(--muted)}
+
+  /* summary band */
+  .summary{padding-block:22px;display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  .score-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+  .score-card .cap{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .score{font-family:var(--ff-mono);font-size:68px;line-height:1;font-weight:600;letter-spacing:-1px;margin-top:6px}
+  .score small{font-size:22px;color:var(--muted);font-weight:500}
+  .verdict{margin-top:12px;display:inline-flex;align-items:center;gap:9px;padding:8px 13px;border-radius:10px;font-weight:600;font-size:14px}
+  .verdict .dot{width:11px;height:11px;border-radius:50%}
+  .meter{margin-top:16px;height:9px;border-radius:999px;background:var(--track);position:relative;overflow:hidden}
+  .meter>span{position:absolute;inset:0 auto 0 0;border-radius:999px}
+  .ticks{position:relative;height:16px;margin-top:5px;font-size:9.5px;color:var(--muted)}
+  .ticks i{position:absolute;transform:translateX(-50%);font-style:normal}
+  .evcov{margin-top:12px;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+  .evcov.gap{color:var(--bad)}
+  .feeds{margin-top:14px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--border);padding-top:12px}
+
+  .profile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;min-width:0}
+  .profile h3{font-size:13px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .prow{display:grid;grid-template-columns:118px 1fr 44px;gap:12px;align-items:center;margin-bottom:11px}
+  .prow .pn{font-size:13px}
+  .prow .pt{height:14px;border-radius:5px;background:var(--track);overflow:hidden}
+  .prow .pt>span{display:block;height:100%;border-radius:5px;transition:width .35s ease}
+  .prow .pv{font-family:var(--ff-mono);font-size:13px;text-align:right}
+
+  /* assessment */
+  .asmt{padding-bottom:10px}
+  .sec-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .sec-head h2{font-size:16px;font-weight:600}
+  .sec-head .wsum{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .dim{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 16px;min-width:0}
+  .dim .dh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+  .dim .dn{font-size:14.5px;font-weight:600}
+  .dim .dd{font-size:11.5px;color:var(--muted)}
+  .dim .src{font-size:10.5px;color:var(--gold-ink);margin:3px 0 10px}
+  .dim .dp{font-family:var(--ff-mono);font-size:14px;font-weight:600}
+  .wt{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+  .wt input{width:46px;font-family:var(--ff-mono);font-size:12.5px;padding:4px 6px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg);text-align:center}
+  .ind{padding:9px 0;border-top:1px solid var(--border)}
+  .ind .top{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center}
+  .ind .il{font-size:12.5px;min-width:0}
+  .ind .code{font-family:var(--ff-mono);font-size:10.5px;color:var(--muted);margin-right:5px}
+  .ind .crit{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .ind .crit b{font-weight:600}
+  .ind .ev{width:100%;margin-top:6px;font-family:inherit;font-size:12px;padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg)}
+  .ind .ev.missing{border-color:var(--bad)}
+  .ind .warn{font-size:11px;color:var(--bad);margin-top:3px}
+  .ind details{margin-top:5px;font-size:11.5px}
+  .ind summary{cursor:pointer;color:var(--muted)}
+  .ind details ul{margin:6px 0 0;padding-left:0;list-style:none}
+  .ind details li{padding:3px 7px;border-radius:6px;margin-bottom:2px}
+  .ind details li.sel{background:var(--surface-2);font-weight:600}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:var(--surface-2);color:var(--muted);padding:5px 9px;font-size:11px;cursor:pointer;border-left:1px solid var(--border)}
+  .seg button:first-child{border-left:0}
+  .seg button[aria-pressed="true"]{color:#fff;font-weight:600}
+  .seg button.s0[aria-pressed="true"]{background:var(--bad)}
+  .seg button.s1[aria-pressed="true"]{background:var(--caution)}
+  .seg button.s2[aria-pressed="true"]{background:var(--good)}
+
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .btn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:9px 15px;border-radius:9px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--gold)}
+
+  /* verification panels */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:22px}
+  .panel p{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+  th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-family:var(--ff-mono)}
+  .pass{color:var(--good);font-weight:600}
+  .fail{color:var(--bad);font-weight:600}
+  .ahp-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .stat{background:var(--surface-2);border-radius:9px;padding:8px 12px;font-size:12px}
+  .stat b{display:block;font-family:var(--ff-mono);font-size:16px}
+  .panel details{margin-top:12px;font-size:12px}
+  .panel summary{cursor:pointer;color:var(--muted)}
+
+  pre.payload{background:var(--surface-2);border-radius:9px;padding:12px;font-family:var(--ff-mono);font-size:11.5px;overflow:auto;max-height:320px;margin:10px 0 0}
+
+  .foot{font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-block:16px 30px;margin-top:22px}
+  .foot code{font-family:var(--ff-mono);font-size:11px}
+  @media (max-width:860px){.summary{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+  @media (max-width:420px){.prow{grid-template-columns:96px 1fr 40px}.score{font-size:58px}}
+  @media (prefers-reduced-motion:reduce){.prow .pt>span{transition:none}}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div class="bar"><div class="wrap">
+  <div class="brand">
+    <div class="eyebrow">J26-CS-323 · Component 1</div>
+    <h1>Cyber Trust Index</h1>
+    <div class="sub">Banking AI trust assessment — proof of concept</div>
+  </div>
+  <div class="asset">System under assessment
+    <b>Simulated AI-enabled credit-scoring system</b>
+  </div>
+</div></div>
+
+<div class="scenarios"><div class="wrap">
+  <span class="lab">Test cases</span>
+  <button class="chipbtn" data-sc="strong">TC1 Well-governed <span class="exp">→ Approve</span></button>
+  <button class="chipbtn" data-sc="monitor">TC2 Mostly governed <span class="exp">→ Monitor</span></button>
+  <button class="chipbtn" data-sc="restrict">TC3 Partially governed <span class="exp">→ Restrict</span></button>
+  <button class="chipbtn" data-sc="weak">TC4 Weakly governed <span class="exp">→ Reject</span></button>
+  <button class="chipbtn reset" data-sc="blank">Clear</button>
+</div></div>
+
+<div class="wrap">
+  <section class="summary">
+    <div class="score-card">
+      <div class="cap">Cyber Trust Index</div>
+      <div class="score tnum"><span id="cti">0</span><small>/100</small></div>
+      <div class="verdict" id="verdict"><span class="dot"></span><span id="verdictText">—</span></div>
+      <div class="meter"><span id="meterFill"></span></div>
+      <div class="ticks"><i style="left:40%">40</i><i style="left:60%">60</i><i style="left:75%">75</i></div>
+      <div class="evcov" id="evcov"></div>
+      <div class="feeds">This index and the per-dimension profile are the output of Component 1. They feed the Component 4 governance decision, which combines trust with cyber-risk exposure (C2) and compliance coverage (C3).</div>
+    </div>
+    <div class="profile">
+      <h3>Per-dimension trust profile</h3>
+      <div id="bars"></div>
+    </div>
+  </section>
+
+  <section class="asmt">
+    <div class="sec-head">
+      <h2>Assessment — evidence-based indicators</h2>
+      <div class="wsum">Dimension weights (from AHP below, editable) · sum: <span id="wsum" class="tnum">100</span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+
+    <div class="actions">
+      <button class="btn" id="copyBtn">Copy result summary</button>
+      <button class="btn" id="ahpBtn">Reset weights to AHP result</button>
+    </div>
+  </section>
+
+  <section class="panel" id="tcPanel">
+    <div class="sec-head"><h2>Test case verification</h2></div>
+    <p>Each test case has a verdict fixed in advance. The tool scores it with the AHP weights and checks the result matches. The sensitivity column changes each dimension weight by ±10% and ±20%, one at a time, and checks whether the verdict holds.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Test case</th><th>Expected</th><th class="num">CTI</th><th>Actual</th><th>Result</th><th>Sensitivity ±10–20%</th></tr></thead>
+      <tbody id="tcBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="ahpPanel">
+    <div class="sec-head"><h2>How the weights are derived (AHP)</h2></div>
+    <p>Experts compare the six dimensions two at a time on the Saaty 1–9 scale ("how much more important is A than B for trust in a credit-scoring AI?"). Answers are combined by geometric mean, the priority vector gives the weights, and the consistency ratio (CR) must be below 0.10. <b>The judgements below are illustrative placeholders</b>; they get replaced by the structured expert review responses.</p>
+    <div class="tbl-wrap"><table>
+      <thead id="ahpHead"></thead>
+      <tbody id="ahpBody"></tbody>
+    </table></div>
+    <div class="ahp-stats" id="ahpStats"></div>
+    <details>
+      <summary>Show the individual expert judgements (5 per pair)</summary>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Pair (A vs B)</th><th>E1</th><th>E2</th><th>E3</th><th>E4</th><th>E5</th><th class="num">Geometric mean</th></tr></thead>
+        <tbody id="pairBody"></tbody>
+      </table></div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Output to Component 4 (interface contract)</h2></div>
+    <p>The data Component 4 will receive at integration. It is shown here only; nothing is sent. Until integration, Component 4 works from simulated values.</p>
+    <div class="actions" style="margin-top:0"><button class="btn" id="payBtn">Copy payload (JSON)</button></div>
+    <pre class="payload" id="payload"></pre>
+  </section>
+
+  <div class="foot">
+    Scoring: each indicator is rated <b>Absent (0)</b>, <b>Partial (1)</b> or <b>Full (2)</b> against the scoring guide and a recorded evidence item (EP-01 to EP-18 in the simulated evidence pack). A dimension score is the indicator mean scaled to 100; the Cyber Trust Index is the weighted mean of the six dimensions. Bands: <code>≥75 Approve · 60–74 Monitor · 40–59 Restrict · &lt;40 Reject</code>. Indicators are grounded in MAS FEAT, the NIST AI RMF and ISO/IEC 42001. Illustrative tool for PP1 — the system and its evidence are simulated, not a real institution's data.
+  </div>
+</div>
+
+<script>
+// Each indicator: [label, evidence item, guide for 0/1/2, example finding for 1/2]
+const DIMS=[
+  {k:"tra",n:"Transparency",d:"System purpose, data and logic are disclosed",src:"MAS FEAT – Transparency · NIST AI RMF – Govern/Map",ind:[
+    ["Model documentation / model card exists","Model card",["No model documentation","Documentation exists but is missing purpose, limitations or version","Complete, versioned model card: purpose, inputs, limitations, owner"],["v0.9, no limitations section","v2.1, complete and versioned"]],
+    ["Training data sources & features disclosed","Data sheet",["Data sources not recorded","Sources listed, but features or lineage incomplete","All sources, features and lineage documented"],["sources listed, feature lineage missing","sources, 42 features and lineage documented"]],
+    ["Decision logic communicated to stakeholders","Customer disclosure notice",["No disclosure that AI is used","Generic statement that AI is used","Plain-language explanation of the main decision factors"],["website says 'AI-assisted decisions' only","notice explains the key factors"]]]},
+  {k:"exp",n:"Explainability",d:"Individual decisions can be explained",src:"MAS FEAT – Transparency · NIST AI RMF – Measure",ind:[
+    ["Each decision produces a reason/explanation","Sample decision outputs",["Outputs give a score only","Reasons for some decisions, or global feature importance only","Every decision carries its top reason codes"],["reasons only for declined cases","all 50 sampled outputs carry reason codes"]],
+    ["Explanation method is documented & validated","Explainability method report",["No method documented","Method named (e.g. SHAP) but not validated","Method documented and validated against model behaviour"],["SHAP named, no validation","SHAP method report with validation results"]],
+    ["Adverse-action reasons given to customers","Adverse-action letter",["Declined customers get no reason","Generic reason (e.g. 'credit policy')","Specific reasons the customer can understand"],["letter gives a generic reason","letter lists the top 3 specific reasons"]]]},
+  {k:"acc",n:"Accountability",d:"Clear ownership and oversight",src:"MAS FEAT – Accountability · ISO/IEC 42001 roles · Three Lines",ind:[
+    ["A named role owns the model","Model ownership register",["No owner recorded","A team is named but no accountable role","A named accountable role has signed off"],["owned by 'Analytics team'","Head of Credit Risk signed as owner"]],
+    ["Human oversight / override process exists","Override procedure & log",["No human override","Overrides happen informally and are not logged","Documented procedure; overrides logged and reviewed"],["overrides allowed but not logged","procedure plus override log, reviewed monthly"]],
+    ["Incident & escalation process defined","AI incident procedure",["No incident process","General IT incident process only","AI-specific incident process with an escalation path"],["general IT incident process only","AI incident runbook with escalation path"]]]},
+  {k:"aud",n:"Auditability",d:"Decisions can be traced and reviewed",src:"ISO/IEC 42001 records · NIST AI RMF – Govern",ind:[
+    ["Decisions logged with model version & inputs","Decision log extract",["Decisions are not logged","Outcome logged without inputs or model version","Inputs, output, model version and timestamp logged"],["outcomes logged, no model version","full log including inputs and model version"]],
+    ["Logs retained & tamper-evident per policy","Log retention policy",["No retention policy","Retention defined, but logs can be edited","Retention defined and logs tamper-evident (write-once or hashed)"],["7-year retention, logs editable","retention policy plus write-once storage"]],
+    ["Independent review / audit process exists","Validation / audit report",["No review","Reviewed by the development team only","Independent validation or internal audit (2nd/3rd line)"],["self-review by the development team","independent validation report (2nd line)"]]]},
+  {k:"fai",n:"Fairness",d:"Bias is tested and controlled",src:"MAS FEAT – Fairness · NIST AI RMF – Measure",ind:[
+    ["Bias testing across protected groups","Bias test report",["Not tested for bias","Tested on one group, or once only","Tested across relevant groups and repeated on retraining"],["gender tested once, at launch","gender, age and region tested each release"]],
+    ["Fairness metrics & thresholds defined","Fairness policy",["No fairness metric","Metric chosen, no threshold","Metrics with approved thresholds"],["metric chosen, no threshold set","approved thresholds (e.g. ratio ≥ 0.8)"]],
+    ["Remediation process for detected bias","Bias remediation record",["No remediation process","Ad-hoc fixes, not documented","Documented process with tracked actions"],["ad-hoc fix, undocumented","tracked remediation log"]]]},
+  {k:"rob",n:"Robustness",d:"Stable and resilient in operation",src:"NIST AI RMF – Measure/Manage · MITRE ATLAS",ind:[
+    ["Performance monitored for drift","Drift monitoring report",["No monitoring","Occasional manual checks","Scheduled monitoring with alert thresholds"],["quarterly manual check","monthly drift report with alerts"]],
+    ["Adversarial / data-quality testing done","Robustness test report",["No testing","Data-quality checks only","Data-quality plus adversarial / stress testing"],["input validation only","stress and adversarial test report"]],
+    ["Fallback / safe-mode on failure defined","Fallback procedure",["No fallback","Fallback exists but has never been tested","Documented and tested fallback (e.g. manual underwriting)"],["manual fallback, never tested","tested fallback to manual underwriting"]]]},
+];
+const LEVELS=["Absent","Partial","Full"];
+// Evidence item codes EP-01 … EP-18, in indicator order
+DIMS.forEach((D,di)=>D.ind.forEach((I,ii)=>I.code="EP-"+String(di*3+ii+1).padStart(2,"0")));
+
+const SCEN={
+  strong:  {n:"TC1 Well-governed",   exp:"Approve", s:[[2,2,2],[2,2,2],[2,1,2],[2,2,1],[2,2,2],[2,1,2]]},
+  monitor: {n:"TC2 Mostly governed", exp:"Monitor", s:[[2,2,1],[1,2,1],[2,1,1],[2,1,1],[1,1,1],[2,1,1]]},
+  restrict:{n:"TC3 Partially governed",exp:"Restrict",s:[[1,2,1],[1,1,0],[2,1,1],[1,1,1],[1,1,1],[1,1,0]]},
+  weak:    {n:"TC4 Weakly governed", exp:"Reject",  s:[[0,1,0],[0,0,0],[1,0,0],[0,0,0],[0,0,0],[0,1,0]]},
+};
+const BANDS=[
+  {min:75,short:"Approve", label:"Approve — trusted for deployment",v:"--good"},
+  {min:60,short:"Monitor", label:"Monitor — deploy with enhanced monitoring",v:"--warn"},
+  {min:40,short:"Restrict",label:"Restrict — remediate before deployment",v:"--caution"},
+  {min:0, short:"Reject",  label:"Reject — not trustworthy for deployment",v:"--bad"},
+];
+
+// ---- AHP: illustrative judgements, 5 experts per pair, order T, E, Acc, Aud, F, R ----
+const PAIRS={
+  "0-1":[1/2,1/2,1,1/2,1],"0-2":[1,1,1,2,1/2],"0-3":[1,1,1,1,1],"0-4":[1/2,1,1,1,1/2],"0-5":[1,2,1,1/2,1],
+  "1-2":[2,1,2,1,1],"1-3":[2,1,1,2,1],"1-4":[1,1,2,1/2,1],"1-5":[2,2,1,1,1],
+  "2-3":[1,1/2,1,1/2,2],"2-4":[1/2,1,1,1/2,1],"2-5":[1,2,1,1,1/2],
+  "3-4":[1,1/2,1/2,1,1],"3-5":[1,1,1,2,1/2],
+  "4-5":[2,1,1,2,1]};
+const RI6=1.24; // Saaty random index for n = 6
+function ahp(){
+  const n=DIMS.length,gm=a=>Math.pow(a.reduce((p,x)=>p*x,1),1/a.length);
+  const A=[...Array(n)].map(()=>Array(n).fill(1));
+  for(const k in PAIRS){const[i,j]=k.split("-").map(Number);A[i][j]=gm(PAIRS[k]);A[j][i]=1/A[i][j];}
+  let w=Array(n).fill(1/n); // principal eigenvector by power iteration
+  for(let it=0;it<200;it++){const v=A.map(r=>r.reduce((s,x,j)=>s+x*w[j],0));const t=v.reduce((a,b)=>a+b);w=v.map(x=>x/t);}
+  const Aw=A.map(r=>r.reduce((s,x,j)=>s+x*w[j],0));
+  const lambda=Aw.reduce((s,x,i)=>s+x/w[i],0)/n,CI=(lambda-n)/(n-1),CR=CI/RI6;
+  return {A,w,lambda,CI,CR};
+}
+const AHP=ahp();
+const AHP_W=AHP.w.map(x=>Math.round(x*100));
+
+const state={scores:{},weights:{},evidence:{}};
+const $=s=>document.querySelector(s);
+function bandFor(x){return BANDS.find(b=>x>=b.min);}
+function colorForPct(p){return p>=75?"--good":p>=60?"--warn":p>=40?"--caution":"--bad";}
+function pctOf(a){return Math.round(a.reduce((s,x)=>s+x,0)/(a.length*2)*100);}
+function ctiOf(scores,weights){
+  const t=weights.reduce((a,b)=>a+b,0)||1;
+  return Math.round(scores.reduce((s,a,i)=>s+pctOf(a)*weights[i]/t,0));
+}
+function evidenceNote(I,v){
+  return v===0?`${I.code} ${I[1]} — not provided`:`${I.code} ${I[1]} — ${I[3][v-1]}`;
+}
+
+function buildGrid(){
+  const g=$("#grid");g.innerHTML="";
+  DIMS.forEach((D,di)=>{
+    const card=document.createElement("div");card.className="dim";
+    card.innerHTML=`<div class="dh">
+        <div><div class="dn">${D.n}</div></div>
+        <div style="text-align:right"><div class="dp" id="dp-${D.k}">0</div>
+          <label class="wt">wt <input type="number" min="0" max="40" id="wt-${D.k}"></label></div>
+      </div>
+      <div class="dd">${D.d}</div>
+      <div class="src">${D.src}</div>
+      <div id="ind-${D.k}"></div>`;
+    g.appendChild(card);
+    const box=card.querySelector(`#ind-${D.k}`);
+    D.ind.forEach((I,idx)=>{
+      const row=document.createElement("div");row.className="ind";
+      row.innerHTML=`<div class="top"><div class="il"><span class="code">${I.code}</span>${I[0]}</div>
+        <div class="seg" role="group" aria-label="${I[0]}">
+          <button class="s0" data-k="${D.k}" data-i="${idx}" data-v="0">Absent</button>
+          <button class="s1" data-k="${D.k}" data-i="${idx}" data-v="1">Partial</button>
+          <button class="s2" data-k="${D.k}" data-i="${idx}" data-v="2">Full</button>
+        </div></div>
+        <div class="crit" id="crit-${D.k}-${idx}"></div>
+        <input class="ev" id="ev-${D.k}-${idx}" placeholder="Evidence: ${I.code} ${I[1]} — what was found" aria-label="Evidence for ${I[0]}">
+        <div class="warn" id="warn-${D.k}-${idx}" hidden>Score above Absent with no evidence recorded</div>
+        <details><summary>Scoring guide · evidence sought: ${I[1]}</summary><ul id="guide-${D.k}-${idx}">
+          ${I[2].map((t,v)=>`<li data-v="${v}"><b>${LEVELS[v]} (${v})</b> — ${t}</li>`).join("")}
+        </ul></details>`;
+      box.appendChild(row);
+      row.querySelector(".ev").addEventListener("input",e=>{state.evidence[D.k][idx]=e.target.value;compute();});
+    });
+    card.querySelector(`#wt-${D.k}`).addEventListener("input",e=>{
+      let v=parseFloat(e.target.value);state.weights[D.k]=isNaN(v)?0:Math.max(0,v);compute();
+    });
+  });
+  g.addEventListener("click",e=>{
+    const b=e.target.closest("button[data-k]");if(!b)return;
+    state.scores[b.dataset.k][+b.dataset.i]=+b.dataset.v;markScenario(null);compute();
+  });
+}
+function buildBars(){
+  const w=$("#bars");w.innerHTML="";
+  DIMS.forEach(D=>{
+    const row=document.createElement("div");row.className="prow";
+    row.innerHTML=`<div class="pn">${D.n}</div>
+      <div class="pt"><span id="bar-${D.k}"></span></div>
+      <div class="pv tnum" id="barv-${D.k}">0</div>`;
+    w.appendChild(row);
+  });
+}
+function compute(){
+  const weights=DIMS.map(D=>state.weights[D.k]||0);
+  const cti=ctiOf(DIMS.map(D=>state.scores[D.k]),weights);
+  let scored=0,backed=0;
+  DIMS.forEach(D=>{
+    const p=pctOf(state.scores[D.k]);
+    const bar=$(`#bar-${D.k}`),col=`var(${colorForPct(p)})`;
+    bar.style.width=p+"%";bar.style.background=col;
+    $(`#barv-${D.k}`).textContent=p;
+    $(`#dp-${D.k}`).textContent=p;$(`#dp-${D.k}`).style.color=col;
+    state.scores[D.k].forEach((v,i)=>{
+      document.querySelectorAll(`button[data-k="${D.k}"][data-i="${i}"]`).forEach(btn=>{
+        btn.setAttribute("aria-pressed",(+btn.dataset.v===v).toString());
+      });
+      const I=D.ind[i];
+      $(`#crit-${D.k}-${i}`).innerHTML=`<b>${LEVELS[v]}:</b> ${I[2][v]}`;
+      document.querySelectorAll(`#guide-${D.k}-${i} li`).forEach(li=>li.classList.toggle("sel",+li.dataset.v===v));
+      const evIn=$(`#ev-${D.k}-${i}`),ev=(state.evidence[D.k][i]||"").trim();
+      if(document.activeElement!==evIn)evIn.value=state.evidence[D.k][i]||"";
+      const missing=v>0&&!ev;
+      evIn.classList.toggle("missing",missing);$(`#warn-${D.k}-${i}`).hidden=!missing;
+      if(v>0){scored++;if(ev)backed++;}
+    });
+    const wi=$(`#wt-${D.k}`);if(document.activeElement!==wi)wi.value=state.weights[D.k];
+  });
+  $("#cti").textContent=cti;
+  const band=bandFor(cti),col=`var(${band.v})`;
+  $("#verdictText").textContent=band.label;
+  const vd=$("#verdict");vd.style.background=`color-mix(in srgb, ${col} 13%, transparent)`;vd.style.color=col;
+  vd.querySelector(".dot").style.background=col;
+  const fill=$("#meterFill");fill.style.width=cti+"%";fill.style.background=col;
+  $("#wsum").textContent=Math.round(weights.reduce((a,b)=>a+b,0));
+  const ec=$("#evcov");
+  ec.textContent=scored?`Evidence: ${backed} of ${scored} credited indicators have a recorded evidence item`:"Evidence: no indicators credited yet";
+  ec.classList.toggle("gap",backed<scored);
+  $("#payload").textContent=JSON.stringify(payload(cti,band,weights,scored,backed),null,2);
+}
+function payload(cti,band,weights,scored,backed){
+  const prof=DIMS.map((D,i)=>({dimension:D.n,score:pctOf(state.scores[D.k]),weight:weights[i]}));
+  return {
+    component:"C1 AI Cyber Trust Assessment",
+    asset_id:"SIM-CREDIT-SCORING-01",
+    cti:cti,
+    trust_band:band.short,
+    dimension_profile:prof,
+    weakest_dimensions:prof.slice().sort((a,b)=>a.score-b.score).slice(0,2).map(p=>p.dimension),
+    evidence_coverage:{credited_indicators:scored,with_evidence:backed},
+    metadata:{assessment_date:new Date().toISOString().slice(0,10),assessor:"PP1 demo",methodology_version:"CTI iteration 1",weighting_scheme:"AHP, illustrative judgements"},
+    limitation_statement:"Simulated asset and evidence; AHP judgements are placeholders until the expert review."
+  };
+}
+function markScenario(name){
+  document.querySelectorAll("[data-sc]").forEach(b=>b.classList.toggle("on",b.dataset.sc===name));
+}
+function loadScenario(name){
+  DIMS.forEach((D,i)=>{
+    const s=name==="blank"?[0,0,0]:SCEN[name].s[i].slice();
+    state.scores[D.k]=s;
+    state.evidence[D.k]=name==="blank"?["","",""]:s.map((v,j)=>evidenceNote(D.ind[j],v));
+  });
+  markScenario(name==="blank"?null:name);compute();
+}
+
+function buildTestCases(){
+  const body=$("#tcBody");body.innerHTML="";
+  Object.entries(SCEN).forEach(([key,S])=>{
+    const cti=ctiOf(S.s,AHP_W),actual=bandFor(cti).short;
+    const flips=[];
+    [0.8,0.9,1.1,1.2].forEach(f=>DIMS.forEach((D,i)=>{
+      const w=AHP_W.slice();w[i]*=f;const c=ctiOf(S.s,w);
+      if(bandFor(c).short!==actual)flips.push(`${D.n} ×${f}`);
+    }));
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><button class="btn" data-sc="${key}" style="padding:4px 10px;font-size:12px">${S.n}</button></td>
+      <td>${S.exp}</td><td class="num">${cti}</td><td>${actual}</td>
+      <td class="${actual===S.exp?"pass":"fail"}">${actual===S.exp?"PASS":"FAIL"}</td>
+      <td>${flips.length?`<span class="fail">Changes under ${flips.join(", ")}</span>`:"<span class='pass'>Stable (24 of 24 variations)</span>"}</td>`;
+    body.appendChild(tr);
+  });
+}
+function buildAHP(){
+  const short=["T","E","Acc","Aud","F","R"];
+  $("#ahpHead").innerHTML=`<tr><th></th>${short.map(s=>`<th class="num">${s}</th>`).join("")}<th class="num">Weight</th></tr>`;
+  $("#ahpBody").innerHTML=DIMS.map((D,i)=>`<tr><th>${D.n}</th>${AHP.A[i].map(x=>`<td class="num">${x.toFixed(2)}</td>`).join("")}<td class="num"><b>${(AHP.w[i]*100).toFixed(1)}%</b></td></tr>`).join("");
+  const ok=AHP.CR<0.10;
+  $("#ahpStats").innerHTML=`
+    <div class="stat">λ<sub>max</sub><b>${AHP.lambda.toFixed(3)}</b></div>
+    <div class="stat">Consistency index (CI)<b>${AHP.CI.toFixed(4)}</b></div>
+    <div class="stat">Random index (RI, n=6)<b>${RI6.toFixed(2)}</b></div>
+    <div class="stat">Consistency ratio (CR)<b class="${ok?"pass":"fail"}">${AHP.CR.toFixed(4)} ${ok?"&lt; 0.10 ✓":"≥ 0.10 ✗"}</b></div>
+    <div class="stat">Rounded weights used<b>${AHP_W.join(" / ")}</b></div>`;
+  const fmt=x=>x>=1?String(Math.round(x)):"1/"+Math.round(1/x);
+  $("#pairBody").innerHTML=Object.entries(PAIRS).map(([k,a])=>{
+    const[i,j]=k.split("-").map(Number);
+    return `<tr><td>${DIMS[i].n} vs ${DIMS[j].n}</td>${a.map(x=>`<td>${fmt(x)}</td>`).join("")}<td class="num">${AHP.A[i][j].toFixed(3)}</td></tr>`;
+  }).join("");
+}
+function resetWeights(){DIMS.forEach((D,i)=>state.weights[D.k]=AHP_W[i]);compute();}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-sc]");if(b)loadScenario(b.dataset.sc);
+});
+$("#ahpBtn").addEventListener("click",resetWeights);
+$("#payBtn").addEventListener("click",async()=>{
+  const done=()=>{$("#payBtn").textContent="Copied ✓";setTimeout(()=>$("#payBtn").textContent="Copy payload (JSON)",1600);};
+  try{await navigator.clipboard.writeText($("#payload").textContent);done();}
+  catch(_){const r=document.createRange();r.selectNode($("#payload"));getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}done();}
+});
+$("#copyBtn").addEventListener("click",async()=>{
+  const lines=["Cyber Trust Index — Simulated AI-enabled credit-scoring system",
+    "CTI: "+$("#cti").textContent+"/100  ("+$("#verdictText").textContent+")",
+    "Weights: "+DIMS.map(D=>D.n+" "+state.weights[D.k]).join(", "),""];
+  DIMS.forEach(D=>{
+    lines.push(D.n+": "+pctOf(state.scores[D.k])+"/100");
+    D.ind.forEach((I,i)=>{const v=state.scores[D.k][i];
+      lines.push(`  ${I.code} ${I[0]}: ${LEVELS[v]} (${v}) | evidence: ${(state.evidence[D.k][i]||"").trim()||"NONE RECORDED"}`);});
+  });
+  const txt=lines.join("\n");
+  const done=()=>{$("#copyBtn").textContent="Copied ✓";setTimeout(()=>$("#copyBtn").textContent="Copy result summary",1600);};
+  try{await navigator.clipboard.writeText(txt);done();}
+  catch(e){const r=document.createRange();const p=document.createElement("pre");p.textContent=txt;
+    p.style.position="fixed";p.style.left="-9999px";document.body.appendChild(p);r.selectNode(p);
+    getSelection().removeAllRanges();getSelection().addRange(r);
+    try{document.execCommand("copy");}catch(_){}document.body.removeChild(p);done();}
+});
+
+DIMS.forEach((D,i)=>{state.weights[D.k]=AHP_W[i];});
+buildGrid();buildBars();buildTestCases();buildAHP();loadScenario("monitor");
+</script>

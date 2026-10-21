@@ -1,0 +1,429 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyber Risk Exposure Index</title>
+<style>
+  /* Same navy/gold shell as the Component 1 tool, so the four PP1 demos look like one framework.
+     Layout: app-bar, scenario row, summary band (index + context profile), asset intake + threat selection,
+     threat scoring table, priority threats, then verification panels. */
+  :root{
+    --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fa; --border:#d7deea;
+    --fg:#152233; --muted:#586a86; --navy:#0e2a47; --navy-2:#17395c;
+    --gold:#9c6f12; --gold-ink:#7a5600;
+    --good:#1a8f5a; --warn:#b07d10; --caution:#cc6526; --bad:#bf3535;
+    --track:#e4e9f1;
+    --ff-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ff-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0a0f16; --surface:#111a25; --surface-2:#16212e; --border:#273341;
+    --fg:#e7eef6; --muted:#93a4ba; --navy:#0c2238; --navy-2:#123150;
+    --gold:#e2ac41; --gold-ink:#f0c879;
+    --good:#43b57e; --warn:#e2ac41; --caution:#e68650; --bad:#e35b4f;
+    --track:#1d2a38; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--ff-sans);line-height:1.5;margin:0}
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1100px;margin:0 auto}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  button,select{font-family:inherit}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .bar{background:var(--navy);color:#eaf1fb}
+  .bar .wrap{padding-block:16px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+  .brand .eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;color:#e2ac41}
+  .brand h1{font-size:21px;font-weight:600;letter-spacing:.2px}
+  .brand .sub{font-size:12.5px;color:#aec3dd}
+  .asset{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#aec3dd}
+  .asset b{font-size:13.5px;color:#eaf1fb;font-weight:600}
+
+  .scenarios{background:var(--surface-2);border-bottom:1px solid var(--border)}
+  .scenarios .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .scenarios .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+  .chipbtn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .chipbtn:hover{border-color:var(--gold)}
+  .chipbtn.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .chipbtn .exp{font-size:10.5px;color:var(--muted)}
+
+  .summary{padding-block:22px;display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;min-width:0}
+  .cap{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .score{font-family:var(--ff-mono);font-size:68px;line-height:1;font-weight:600;letter-spacing:-1px;margin-top:6px}
+  .score small{font-size:22px;color:var(--muted);font-weight:500}
+  .verdict{margin-top:12px;display:inline-flex;align-items:center;gap:9px;padding:8px 13px;border-radius:10px;font-weight:600;font-size:14px}
+  .verdict .dot{width:11px;height:11px;border-radius:50%}
+  .meter{margin-top:16px;height:9px;border-radius:999px;background:var(--track);position:relative;overflow:hidden}
+  .meter>span{position:absolute;inset:0 auto 0 0;border-radius:999px}
+  .ticks{position:relative;height:16px;margin-top:5px;font-size:9.5px;color:var(--muted)}
+  .ticks i{position:absolute;transform:translateX(-50%);font-style:normal}
+  .note{margin-top:12px;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+  .note.alert{color:var(--bad)}
+  .feeds{margin-top:14px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--border);padding-top:12px}
+  .card h3{font-size:13px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .prow{display:grid;grid-template-columns:170px 1fr 34px;gap:12px;align-items:center;margin-bottom:9px}
+  .prow .pn{font-size:13px}
+  .prow .pn small{color:var(--muted);font-family:var(--ff-mono);font-size:11px}
+  .prow .pt{height:14px;border-radius:5px;background:var(--track);overflow:hidden}
+  .prow .pt>span{display:block;height:100%;border-radius:5px;transition:width .35s ease}
+  .prow .pv{font-family:var(--ff-mono);font-size:13px;text-align:right}
+  .calc{font-size:12px;color:var(--muted);margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;font-family:var(--ff-mono)}
+
+  .sec-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .sec-head h2{font-size:16px;font-weight:600}
+  .sec-head .hint{font-size:12px;color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:12.5px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0}
+  .factor{padding:9px 0;border-top:1px solid var(--border)}
+  .factor .top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+  .factor .fn{font-size:13px;font-weight:600}
+  .factor .fn small{font-weight:400;color:var(--muted);font-family:var(--ff-mono)}
+  .factor .crit{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:var(--surface-2);color:var(--muted);padding:4px 9px;font-size:11.5px;cursor:pointer;border-left:1px solid var(--border);font-family:var(--ff-mono)}
+  .seg button:first-child{border-left:0}
+  .seg button[aria-pressed="true"]{background:var(--navy-2);color:#fff;font-weight:600}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:22px}
+  .panel p{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+  th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-family:var(--ff-mono)}
+  td.wrapc{white-space:normal;min-width:220px}
+  tr.excluded td{color:var(--muted)}
+  td.thr{white-space:normal;min-width:200px}
+  td.thr .why{display:block;font-size:11px;color:var(--muted)}
+  td.srcc{white-space:normal;font-size:11.5px;min-width:110px}
+  .pass{color:var(--good);font-weight:600}
+  .fail{color:var(--bad);font-weight:600}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-family:var(--ff-mono)}
+  .tag.in{color:var(--good);border-color:var(--good)}
+  .tag.gen{color:var(--gold-ink);border-color:var(--gold)}
+  td select{font-family:var(--ff-mono);font-size:12px;padding:3px 4px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--fg)}
+  .ov{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border);font-size:12.5px}
+  .ov:first-child{border-top:0}
+  .ov .st{font-family:var(--ff-mono);font-size:11px;min-width:64px}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .btn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:9px 15px;border-radius:9px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--gold)}
+  pre.payload{background:var(--surface-2);border-radius:9px;padding:12px;font-family:var(--ff-mono);font-size:11.5px;overflow:auto;max-height:320px;margin:10px 0 0}
+  .panel details{margin-top:12px;font-size:12px}
+  .panel summary{cursor:pointer;color:var(--muted)}
+
+  .foot{font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-block:16px 30px;margin-top:22px}
+  .foot code{font-family:var(--ff-mono);font-size:11px}
+  @media (max-width:860px){.summary{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+  @media (max-width:420px){.prow{grid-template-columns:120px 1fr 30px}.score{font-size:58px}.kv{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){.prow .pt>span{transition:none}}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div class="bar"><div class="wrap">
+  <div class="brand">
+    <div class="eyebrow">J26-CS-323 · Component 2</div>
+    <h1>Cyber Risk Exposure Index</h1>
+    <div class="sub">AI Cyber Risk Exposure (AICRE) assessment — proof of concept</div>
+  </div>
+  <div class="asset">System under assessment
+    <b>Simulated AI-enabled credit-scoring system</b>
+  </div>
+</div></div>
+
+<div class="scenarios"><div class="wrap">
+  <span class="lab">Deployment variants</span>
+  <button class="chipbtn" data-sc="v1">V1 Internal batch <span class="exp">→ Low</span></button>
+  <button class="chipbtn" data-sc="v2">V2 Branch officer tool <span class="exp">→ Medium</span></button>
+  <button class="chipbtn" data-sc="v3">V3 Online application <span class="exp">→ High</span></button>
+  <button class="chipbtn" data-sc="v4">V4 Chat assistant on third-party model <span class="exp">→ Critical</span></button>
+</div></div>
+
+<div class="wrap">
+  <section class="summary">
+    <div class="card">
+      <div class="cap">Cyber Risk Exposure Index</div>
+      <div class="score tnum"><span id="crei">0</span><small>/100</small></div>
+      <div class="verdict" id="band"><span class="dot"></span><span id="bandText">—</span></div>
+      <div class="meter"><span id="meterFill"></span></div>
+      <div class="ticks"><i style="left:25%">25</i><i style="left:50%">50</i><i style="left:75%">75</i></div>
+      <div class="note" id="bandNote"></div>
+      <div class="feeds">Higher means more exposed. The index, band, priority threats and override flags are the output of Component 2 and are passed to the Component 4 governance decision through the interface contract (Table 4.4).</div>
+    </div>
+    <div class="card">
+      <h3>How the index is built</h3>
+      <div id="layerBars"></div>
+      <div class="calc" id="calc"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Part 1–2 · Asset intake and rule-based threat selection</h2>
+      <div class="hint">Same asset, different deployment — the rules decide which threats apply</div></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Asset profile (observable facts)</h3>
+        <dl class="kv" id="profile"></dl>
+      </div>
+      <div class="card">
+        <h3>Part 3 · Context-exposure factors (1–5)</h3>
+        <div id="factors"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Part 4 · Threat scoring and control discounting</h2>
+      <div class="hint">L = likelihood, I = impact (1–5) · controls lower likelihood</div></div>
+    <p>Every catalogue threat is listed. Threats the rules exclude are greyed out with the reason. For included threats, the assessor rates likelihood, impact and how effective the existing control is. Residual likelihood = L minus the control step (never below 1). Residual exposure = residual L × I, out of 25.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>ID</th><th>Threat · why selected</th><th>Layer</th><th>Source</th><th>Rule</th><th class="num">L</th><th class="num">I</th><th>Control</th><th class="num">Res. L</th><th class="num">Exposure</th></tr></thead>
+      <tbody id="threatBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="grid2" style="margin-top:22px">
+    <div class="card">
+      <h3>Part 5 · Priority threats</h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>#</th><th>Threat</th><th>Layer</th><th class="num">Res. L×I</th></tr></thead>
+        <tbody id="prioBody"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>Part 5 · Override rules</h3>
+      <div id="overrides"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Test case verification</h2></div>
+    <p>Each deployment variant has its band fixed in advance. The tool scores it and checks the result. The discrimination check needs the four variants to land in at least three different bands. The sensitivity column changes each context-factor weight by ±10% and ±20%, one at a time, and checks whether the band holds.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Variant</th><th>Expected</th><th class="num">CREI</th><th>Index band</th><th>Final band</th><th>Set by</th><th>Result</th><th>Sensitivity ±10–20%</th></tr></thead>
+      <tbody id="tcBody"></tbody>
+    </table></div>
+    <div class="note" id="discrim"></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Output to Component 4 (interface contract)</h2></div>
+    <p>The payload Component 4 will receive at integration. It is shown here only; nothing is sent. Until integration, Component 4 works from simulated values.</p>
+    <div class="actions" style="margin-top:0">
+      <button class="btn" id="copyBtn">Copy payload (JSON)</button>
+    </div>
+    <pre class="payload" id="payload"></pre>
+  </section>
+
+  <div class="foot">
+    Method (iteration 1): residual exposure per threat = residual likelihood × impact (1–25). Layer exposure = mean of its included threats, scaled to 100. Threat index = layers averaged with equal weight. Context modifier = 0.7 + 0.1 × (weighted context score − 1), so a 1–5 context gives ×0.7 to ×1.1. <code>CREI = threat index × context modifier</code>, capped at 100. Bands: <code>0–24 Low · 25–49 Medium · 50–74 High · 75–100 Critical</code>. Override rules can raise the band, never lower it (Table 4.3). Context weights are the Table 4.2 defaults; the delivered weights come from the two-round Delphi. Threat vocabulary from MITRE ATLAS, NIST AI 100-2e2025 and the OWASP Top 10 for LLM Applications; ATLAS IDs are indicative and should be checked against the current release. Illustrative tool for PP1 — the asset, ratings and controls are simulated, not a real institution's data.
+  </div>
+</div>
+
+<script>
+const LAYERS=[
+  {k:"L1",n:"Training & reference data"},
+  {k:"L2",n:"AI model"},
+  {k:"L3",n:"Input interfaces & integrations"},
+  {k:"L4",n:"Outputs & decisions"},
+];
+// Threat catalogue: id, name, layer, source, generative-only, selection rule (asset profile → [included, reason])
+const THREATS=[
+  {id:"T01",n:"Training-data poisoning",l:"L1",src:"ATLAS AML.T0020",rule:p=>[true,"Any trained model can be poisoned"]},
+  {id:"T02",n:"Membership inference (training-data disclosure)",l:"L1",src:"ATLAS AML.T0024.000",rule:p=>p.extQuery?[true,"Outside parties can query the model"]:[false,"No outside query access"]},
+  {id:"T03",n:"Upstream feed / data-pipeline compromise",l:"L1",src:"NIST AI 100-2e2025",rule:p=>p.extFeeds?[true,"Uses external data feeds"]:[false,"Curated internal data only"]},
+  {id:"T04",n:"Model extraction / theft",l:"L2",src:"ATLAS AML.T0024.002",rule:p=>p.extQuery?[true,"Outside parties can query the model"]:[false,"No outside query access"]},
+  {id:"T05",n:"Model inversion",l:"L2",src:"ATLAS AML.T0024.001",rule:p=>p.extQuery&&p.output!=="decision"?[true,"Scores returned to outside parties"]:[false,"Only a decision, or no outside access"]},
+  {id:"T06",n:"Backdoor / trojan insertion",l:"L2",src:"ATLAS AML.T0018",rule:p=>[true,"Any retrainable model can be backdoored"]},
+  {id:"T07",n:"Compromised vendor / pre-trained component",l:"L2",src:"ATLAS AML.T0010",rule:p=>p.model!=="In-house"?[true,"Relies on an outside model"]:[false,"Model built in-house"]},
+  {id:"T08",n:"Evasion / adversarial input crafting",l:"L3",src:"ATLAS AML.T0015",rule:p=>p.applicantInputs?[true,"Applicant controls input features"]:[false,"Inputs come from internal records"]},
+  {id:"T09",n:"Prompt injection",l:"L3",src:"ATLAS AML.T0051 · OWASP LLM01",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
+  {id:"T10",n:"Abuse of integration credentials",l:"L3",src:"ATLAS AML.T0012",rule:p=>p.extIntegrations?[true,"External API integrations"]:[false,"Internal integrations only"]},
+  {id:"T11",n:"Confidence / explanation leakage",l:"L4",src:"NIST AI 100-2e2025",rule:p=>p.extQuery&&p.explains?[true,"Explanations returned to outside parties"]:[false,"No explanations leave the bank"]},
+  {id:"T12",n:"Output-integrity compromise in transit",l:"L4",src:"NIST AI 100-2e2025",rule:p=>[true,"Decisions always flow to the loan system"]},
+  {id:"T13",n:"Sensitive information disclosure by assistant",l:"L4",src:"OWASP LLM02",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
+];
+const CTRL=["Absent","Partial","Effective","Strong"]; // step 0–3 off likelihood
+const FACTORS=[
+  {k:"data",n:"Data sensitivity",w:.25,lv:["No personal data","Pseudonymised, low sensitivity","Personal data, limited scope","Personal financial data","Personal financial + bureau data, large scale"]},
+  {k:"attack",n:"Attack surface",w:.22,lv:["No external inputs","Internal staff inputs only","Staff enter applicant data","Applicants submit data online","Open conversational channel"]},
+  {k:"model",n:"Model exposure",w:.20,lv:["Decision only, internal","Score shown to staff","Score returned externally","Score + reasons externally, rate-limited","Probability + explanation, no rate limit"]},
+  {k:"access",n:"Access exposure",w:.18,lv:["One system, strong segregation","Few systems, MFA","Several systems, shared retraining access","Many systems, weak segregation","Broad privileged access"]},
+  {k:"third",n:"Third-party & integration",w:.15,lv:["None","Internal integrations only","One verified external feed","Vendor model component","Third-party foundation model, unverified"]},
+];
+const BANDS=[
+  {min:75,n:"Critical",mean:"Exposure inconsistent with continued unrestricted operation",v:"--bad"},
+  {min:50,n:"High",mean:"Treatment required before the asset's use is expanded",v:"--caution"},
+  {min:25,n:"Medium",mean:"Needs a named owner and scheduled treatment",v:"--warn"},
+  {min:0,n:"Low",mean:"Within routine tolerance; standard monitoring",v:"--good"},
+];
+const ORDER=["Low","Medium","High","Critical"];
+
+// Deployment variants of the same credit-scoring system. r: threat → [L, I, control step]
+const SCEN={
+  v1:{n:"V1 Internal batch scoring",exp:"Low",
+    p:{channel:"Overnight batch run by credit analysts",model:"In-house",output:"decision",explains:false,extQuery:false,applicantInputs:false,extFeeds:false,extIntegrations:false,generative:false,
+       dataDesc:"Curated internal loan history"},
+    f:{data:4,attack:1,model:1,access:2,third:1},
+    r:{T01:[2,3,2],T06:[1,3,1],T12:[2,3,2]}},
+  v2:{n:"V2 Branch officer tool",exp:"Medium",
+    p:{channel:"Loan officers enter applications in branch",model:"In-house",output:"score",explains:false,extQuery:false,applicantInputs:true,extFeeds:true,extIntegrations:false,generative:false,
+       dataDesc:"Internal history + credit-bureau feed"},
+    f:{data:4,attack:3,model:2,access:3,third:2},
+    r:{T01:[3,4,1],T03:[4,4,1],T06:[2,4,1],T08:[4,4,1],T12:[3,3,1]}},
+  v3:{n:"V3 Online customer application",exp:"High",
+    p:{channel:"Customers apply on web and mobile",model:"Vendor pre-trained component",output:"score",explains:true,extQuery:true,applicantInputs:true,extFeeds:true,extIntegrations:true,generative:false,
+       dataDesc:"Internal history + bureau + external feeds"},
+    f:{data:5,attack:4,model:4,access:3,third:4},
+    r:{T01:[4,4,1],T02:[3,4,1],T03:[4,4,1],T04:[4,4,1],T05:[3,4,1],T06:[2,4,1],T07:[3,4,1],T08:[5,4,1],T10:[3,4,1],T11:[4,3,1],T12:[3,4,1]}},
+  v4:{n:"V4 Chat assistant on third-party model",exp:"Critical",
+    p:{channel:"Customer chat assistant fronts the scoring",model:"Third-party foundation model",output:"probability",explains:true,extQuery:true,applicantInputs:true,extFeeds:true,extIntegrations:true,generative:true,
+       dataDesc:"Internal + bureau + unverified external feeds"},
+    f:{data:5,attack:5,model:5,access:4,third:5},
+    r:{T01:[4,5,0],T02:[4,4,0],T03:[4,4,1],T04:[4,4,0],T05:[4,4,0],T06:[3,5,0],T07:[4,5,0],T08:[5,4,1],T09:[5,4,0],T10:[4,4,1],T11:[5,4,0],T12:[3,4,1],T13:[4,5,0]}},
+};
+
+const $=s=>document.querySelector(s);
+const state={sc:null,profile:null,f:{},r:{}};
+const DEFAULT_W=FACTORS.map(F=>F.w);
+
+function bandOf(x){return BANDS.find(b=>x>=b.min);}
+function residual(r){return {rl:Math.max(1,r[0]-r[2]),i:r[1]};}
+
+// Pure scoring function: used both for the live view and for the test-case table
+function assess(profile,f,r,weights){
+  const sel=THREATS.map(T=>{const [inc,why]=T.rule(profile);return {T,inc,why};});
+  const scored=sel.filter(s=>s.inc).map(s=>{const x=r[s.T.id]||[1,1,0];const {rl,i}=residual(x);return {T:s.T,raw:x,rl,i,e:rl*i};});
+  const layer=LAYERS.map(L=>{const t=scored.filter(s=>s.T.l===L.k);return t.length?t.reduce((a,s)=>a+s.e,0)/t.length/25*100:0;});
+  const threatIdx=layer.reduce((a,b)=>a+b,0)/LAYERS.length;
+  const wt=weights.reduce((a,b)=>a+b,0);
+  const cx=FACTORS.reduce((a,F,i)=>a+f[F.k]*weights[i]/wt,0);
+  const mod=0.7+0.1*(cx-1);
+  const crei=Math.min(100,Math.round(threatIdx*mod));
+  const idxBand=bandOf(crei).n;
+  // Override rules (Table 4.3) — each can only raise the band
+  const ov=[
+    {id:"OR-M",floor:"Medium",text:"Any threat with residual impact ≥ 4",hit:scored.filter(s=>s.i>=4)},
+    {id:"OR-H",floor:"High",text:"Any threat with residual likelihood ≥ 4 and residual impact ≥ 4",hit:scored.filter(s=>s.rl>=4&&s.i>=4)},
+    {id:"OR-C",floor:"Critical",text:"Residual impact 5 on the data or model layer with control absent",hit:scored.filter(s=>s.i===5&&(s.T.l==="L1"||s.T.l==="L2")&&s.raw[2]===0)},
+  ];
+  let final=idxBand,setBy="Index";
+  ov.forEach(o=>{if(o.hit.length&&ORDER.indexOf(o.floor)>ORDER.indexOf(final)){final=o.floor;setBy=o.id;}});
+  const prio=scored.slice().sort((a,b)=>b.e-a.e||b.i-a.i||a.T.id.localeCompare(b.T.id));
+  return {sel,scored,layer,threatIdx,cx,mod,crei,idxBand,ov,final,setBy,prio};
+}
+
+function render(){
+  const A=assess(state.profile,state.f,state.r,DEFAULT_W);
+  state.last=A;
+  $("#crei").textContent=A.crei;
+  const B=BANDS.find(b=>b.n===A.final),col=`var(${B.v})`;
+  $("#bandText").textContent=A.final+" — "+B.mean;
+  const bd=$("#band");bd.style.background=`color-mix(in srgb, ${col} 13%, transparent)`;bd.style.color=col;bd.querySelector(".dot").style.background=col;
+  const fill=$("#meterFill");fill.style.width=A.crei+"%";fill.style.background=col;
+  const bn=$("#bandNote");
+  if(A.setBy==="Index"){bn.textContent=`Band set by the index (${A.crei} falls in ${A.idxBand}). No override raised it.`;bn.classList.remove("alert");}
+  else{bn.textContent=`Index alone gives ${A.idxBand}; override ${A.setBy} raised the band to ${A.final}.`;bn.classList.add("alert");}
+
+  $("#layerBars").innerHTML=LAYERS.map((L,i)=>{const p=Math.round(A.layer[i]);const c=`var(${bandOf(p).v})`;
+    return `<div class="prow"><div class="pn">${L.n} <small>${L.k}</small></div><div class="pt"><span style="width:${p}%;background:${c}"></span></div><div class="pv tnum">${p}</div></div>`;}).join("");
+  $("#calc").innerHTML=`Threat index = mean of 4 layers = ${A.threatIdx.toFixed(1)}<br>Weighted context score = ${A.cx.toFixed(2)} / 5 → modifier ×${A.mod.toFixed(3)}<br>CREI = ${A.threatIdx.toFixed(1)} × ${A.mod.toFixed(3)} = <b>${A.crei}</b>`;
+
+  const P=state.profile;
+  $("#profile").innerHTML=[
+    ["Deployment",P.channel],["Model source",P.model],["Output returned",{decision:"Decision only",score:"Credit score",probability:"Default probability"}[P.output]+(P.explains?" + reasons":"")],
+    ["Outside query access",P.extQuery?"Yes":"No"],["Applicant-controlled inputs",P.applicantInputs?"Yes":"No"],["Training data",P.dataDesc],
+    ["External integrations",P.extIntegrations?"Yes":"No"],["Generative component",P.generative?"Yes":"No"],
+  ].map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+
+  $("#factors").innerHTML=FACTORS.map(F=>`<div class="factor"><div class="top"><div class="fn">${F.n} <small>w ${F.w.toFixed(2)}</small></div>
+      <div class="seg" role="group" aria-label="${F.n}">${[1,2,3,4,5].map(v=>`<button data-f="${F.k}" data-v="${v}" aria-pressed="${state.f[F.k]===v}">${v}</button>`).join("")}</div></div>
+      <div class="crit"><b>${state.f[F.k]}:</b> ${F.lv[state.f[F.k]-1]}</div></div>`).join("");
+
+  const opt=(n,sel,labels)=>labels.map((l,i)=>`<option value="${i+(n?1:0)}"${(i+(n?1:0))===sel?" selected":""}>${l}</option>`).join("");
+  $("#threatBody").innerHTML=A.sel.map(s=>{
+    const T=s.T,L=LAYERS.find(x=>x.k===T.l);
+    // Rule rationale sits under the threat name so the scoring columns stay visible at projector widths
+    if(!s.inc)return `<tr class="excluded"><td>${T.id}</td><td class="thr">${T.n}<span class="why">${s.why}</span></td><td>${T.l}</td><td class="srcc">${T.src}</td><td><span class="tag">excluded</span></td><td colspan="5"></td></tr>`;
+    const x=state.r[T.id]||[1,1,0];const {rl,i}=residual(x);const e=rl*i;
+    return `<tr><td>${T.id}</td><td class="thr">${T.n}${T.gen?' <span class="tag gen">gen-AI</span>':""}<span class="why">${s.why}</span></td><td title="${L.n}">${T.l}</td><td class="srcc">${T.src}</td>
+      <td><span class="tag in">included</span></td>
+      <td class="num"><select data-t="${T.id}" data-j="0" aria-label="${T.id} likelihood">${opt(1,x[0],["1","2","3","4","5"])}</select></td>
+      <td class="num"><select data-t="${T.id}" data-j="1" aria-label="${T.id} impact">${opt(1,x[1],["1","2","3","4","5"])}</select></td>
+      <td><select data-t="${T.id}" data-j="2" aria-label="${T.id} control">${opt(0,x[2],CTRL)}</select></td>
+      <td class="num">${rl}</td><td class="num" style="color:var(${e>=16?"--bad":e>=9?"--caution":"--muted"})"><b>${e}</b>/25</td></tr>`;
+  }).join("");
+
+  $("#prioBody").innerHTML=A.prio.slice(0,5).map((s,i)=>`<tr><td>${i+1}</td><td>${s.T.id} ${s.T.n}</td><td>${s.T.l}</td><td class="num">${s.rl}×${s.i} = ${s.e}</td></tr>`).join("");
+  $("#overrides").innerHTML=A.ov.map(o=>`<div class="ov"><div class="st ${o.hit.length?"fail":"pass"}">${o.hit.length?"FIRED":"not fired"}</div>
+      <div><b>${o.id}</b> → at least ${o.floor}<br><span style="color:var(--muted)">${o.text}${o.hit.length?" · triggered by "+o.hit.map(h=>h.T.id).join(", "):""}</span></div></div>`).join("");
+
+  $("#payload").textContent=JSON.stringify(payload(A),null,2);
+  document.querySelectorAll("[data-sc]").forEach(b=>b.classList.toggle("on",b.dataset.sc===state.sc));
+}
+
+function payload(A){
+  return {
+    component:"C2 AI Cyber Risk Exposure",
+    asset_id:"SIM-CREDIT-SCORING-01",
+    deployment_variant:state.sc?SCEN[state.sc].n:"custom",
+    exposure_rating:A.final,
+    crei:A.crei,
+    priority_threats:A.prio.slice(0,5).map(s=>({id:s.T.id,threat:s.T.n,layer:s.T.l,residual_likelihood:s.rl,residual_impact:s.i,source:s.T.src})),
+    context_profile:Object.fromEntries(FACTORS.map(F=>[F.k,{score:state.f[F.k],weight:F.w}])),
+    override_flags:A.ov.filter(o=>o.hit.length).map(o=>({rule:o.id,description:o.text,triggered_by:o.hit.map(h=>h.T.id)})),
+    metadata:{assessment_date:new Date().toISOString().slice(0,10),assessor:"PP1 demo",methodology_version:"AICRE iteration 1",weighting_scheme:"Table 4.2 defaults (pre-Delphi)"},
+    limitation_statement:"Ordinal ratings on a simulated asset; weights are pre-Delphi defaults."
+  };
+}
+
+function loadScenario(k){
+  const S=SCEN[k];state.sc=k;state.profile={...S.p};state.f={...S.f};
+  state.r={};THREATS.forEach(T=>state.r[T.id]=(S.r[T.id]||[2,3,1]).slice());
+  render();
+}
+
+function buildTestCases(){
+  const rows=[],finals=new Set();
+  Object.entries(SCEN).forEach(([k,S])=>{
+    const A=assess(S.p,S.f,S.r,DEFAULT_W);finals.add(A.final);
+    const flips=[];
+    [0.8,0.9,1.1,1.2].forEach(m=>FACTORS.forEach((F,i)=>{
+      const w=DEFAULT_W.slice();w[i]*=m;const B=assess(S.p,S.f,S.r,w);
+      if(B.final!==A.final)flips.push(`${F.n} ×${m}`);
+    }));
+    rows.push(`<tr><td><button class="btn" data-sc="${k}" style="padding:4px 10px;font-size:12px">${S.n}</button></td>
+      <td>${S.exp}</td><td class="num">${A.crei}</td><td>${A.idxBand}</td><td><b>${A.final}</b></td><td>${A.setBy==="Index"?"Index":"Override "+A.setBy}</td>
+      <td class="${A.final===S.exp?"pass":"fail"}">${A.final===S.exp?"PASS":"FAIL"}</td>
+      <td>${flips.length?`<span class="fail">Changes under ${flips.join(", ")}</span>`:"<span class='pass'>Stable (20 of 20 variations)</span>"}</td></tr>`);
+  });
+  $("#tcBody").innerHTML=rows.join("");
+  const ok=finals.size>=3;
+  $("#discrim").innerHTML=`<b class="${ok?"pass":"fail"}">Discrimination ${ok?"PASS":"FAIL"}</b> — the four variants land in ${finals.size} distinct bands (target: at least 3).`;
+}
+
+document.addEventListener("click",e=>{
+  const s=e.target.closest("[data-sc]");if(s){loadScenario(s.dataset.sc);return;}
+  const f=e.target.closest("button[data-f]");if(f){state.f[f.dataset.f]=+f.dataset.v;state.sc=null;render();}
+});
+document.addEventListener("change",e=>{
+  const t=e.target.closest("select[data-t]");if(!t)return;
+  state.r[t.dataset.t][+t.dataset.j]=+t.value;state.sc=null;render();
+});
+$("#copyBtn").addEventListener("click",async()=>{
+  const txt=$("#payload").textContent;
+  const done=()=>{$("#copyBtn").textContent="Copied ✓";setTimeout(()=>$("#copyBtn").textContent="Copy payload (JSON)",1600);};
+  try{await navigator.clipboard.writeText(txt);done();}
+  catch(_){const r=document.createRange();r.selectNode($("#payload"));getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}done();}
+});
+
+buildTestCases();loadScenario("v3");
+</script>
