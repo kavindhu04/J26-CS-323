@@ -3,8 +3,9 @@
 <title>Governance Decision Scorecard</title>
 <style>
   /* Same navy/gold shell as the Component 1 tool. Layout: app-bar, scenario row, simulated-input band,
-     decision summary (verdict + normalisation table), override rules, scorecard + accountability playbook,
-     then verification panels (scenario tests, AHP). */
+     decision summary (verdict + normalisation table), override rules, scorecard (merged actions, RACI),
+     accountability checks, playbook (authority, escalation), owner register, then verification panels
+     (scenario tests, accountability tests, AHP). */
   :root{
     --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fa; --border:#d7deea;
     --fg:#152233; --muted:#586a86; --navy:#0e2a47; --navy-2:#17395c;
@@ -113,6 +114,26 @@
   .btn{border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:9px 15px;border-radius:9px;font-size:13px;cursor:pointer}
   .btn:hover{border-color:var(--gold)}
 
+  .tag{display:inline-block;font-size:10.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:0 7px;margin:0 4px 3px 0;color:var(--muted)}
+  .tag.multi{border-color:var(--gold);color:var(--gold-ink)}
+  .finds{margin:0;padding-left:15px;font-size:11.5px}
+  .finds li{margin-bottom:2px}
+  select.status{font-size:11.5px;padding:3px 5px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--fg);max-width:170px}
+  select.status.st-closed{border-color:var(--good);color:var(--good)}
+  select.status.st-overdue{border-color:var(--bad);color:var(--bad)}
+  .reg input{width:100%;min-width:150px;font-size:12.5px;padding:4px 7px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}
+  .line{font-family:var(--ff-mono);font-size:11px}
+  .chk{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--border);font-size:12.5px}
+  .chk:first-child{border-top:0}
+  .chk .st{font-family:var(--ff-mono);font-size:11px;min-width:64px}
+  .warn-t{color:var(--caution);font-weight:600}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
+  .two h3{font-size:12px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+  dl.auth{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:12.5px}
+  dl.auth dt{color:var(--muted)}
+  dl.auth dd{margin:0}
+  @media (max-width:860px){.two{grid-template-columns:1fr}}
+
   .foot{font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-block:16px 30px;margin-top:22px}
   .foot code{font-family:var(--ff-mono);font-size:11px}
   @media (max-width:860px){.summary{grid-template-columns:1fr}.ingrid{grid-template-columns:1fr}}
@@ -186,18 +207,41 @@
   </section>
 
   <section class="panel">
-    <div class="sec-head"><h2>Cyber Governance Scorecard — prioritised controls</h2>
-      <div class="hint">Findings fed in from C1–C3 (simulated) · Three Lines of Defense routing</div></div>
+    <div class="sec-head"><h2>Cyber Governance Scorecard — prioritised actions</h2>
+      <div class="hint">Findings fed in from C1–C3 (simulated) · merged by control · Three Lines of Defense routing</div></div>
+    <p>Findings from different components that need the same control become one action, so nobody is asked to fix the same thing twice. Priority = highest severity among its findings; ties go to the action flagged by more components. Each action gets one <b>Accountable</b> owner and a <b>Responsible</b> doer (1st line), a <b>2nd-line reviewer</b> who signs off closure, and <b>3rd-line assurance</b> (internal audit). Names come from the owner register below.</p>
+    <div class="hint" id="mergeNote" style="margin-bottom:8px"></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>#</th><th>From</th><th>Finding</th><th>Severity</th><th>Control to apply</th><th>Reference</th><th>Accountability (3LoD)</th><th>Due</th></tr></thead>
+      <thead><tr><th>#</th><th>Action (control to apply)</th><th>Flagged by</th><th>Priority</th><th>Reference</th><th>Accountability (RACI · 3LoD)</th><th>Due</th><th>Status</th></tr></thead>
       <tbody id="ctlBody"></tbody>
     </table></div>
   </section>
 
   <section class="panel">
+    <div class="sec-head"><h2>Accountability checks</h2><div class="hint">Re-run on every change</div></div>
+    <p>The proposal's accountability-coverage metric, plus independence rules from the Three Lines Model: the people who check the work must not be the people who do it.</p>
+    <div class="ahp-stats" id="chkStats" style="margin:0 0 10px"></div>
+    <div id="chkList"></div>
+  </section>
+
+  <section class="panel">
     <div class="sec-head"><h2>Accountability Playbook</h2></div>
     <div id="playbook"></div>
+    <div class="two">
+      <div><h3>Decision authority</h3><dl class="auth" id="auth"></dl></div>
+      <div><h3>Progress and escalation</h3><div id="progress" style="font-size:12.5px"></div><div id="escal"></div></div>
+    </div>
     <div class="actions"><button class="btn" id="copyBtn">Copy decision record</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="sec-head"><h2>Owner register — simulated Bank S</h2><div class="hint">Fictional people · edit a name to reassign</div></div>
+    <p>Every action above is routed to a role, and each role to a named person. Changing a name here reassigns every action that role owns, and the accountability checks re-run. Try giving two roles the same person to see an independence conflict.</p>
+    <div class="tbl-wrap"><table class="reg">
+      <thead><tr><th>Role</th><th>Line</th><th>Person</th><th class="num">Accountable for</th><th class="num">Reviews</th></tr></thead>
+      <tbody id="regBody"></tbody>
+    </table></div>
+    <div class="actions"><button class="btn" id="regReset">Reset register</button></div>
   </section>
 
   <section class="panel">
@@ -206,6 +250,12 @@
     <div class="tbl-wrap"><table>
       <thead><tr><th>Scenario</th><th class="num">CTI</th><th class="num">CREI</th><th>C2 band</th><th class="num">CCS</th><th class="num">Score</th><th>Score band</th><th>Override</th><th>Expected</th><th>Actual</th><th>Result</th><th>Sensitivity ±10–20%</th></tr></thead>
       <tbody id="tcBody"></tbody>
+    </table></div>
+    <h3 style="font-size:13px;margin:18px 0 6px">Accountability tests</h3>
+    <p>Each test changes the register or the routing on a copy, with the expected check result fixed in advance. The live register is not touched.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Test</th><th>What is changed</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+      <tbody id="atBody"></tbody>
     </table></div>
   </section>
 
@@ -220,7 +270,7 @@
   </section>
 
   <div class="foot">
-    Method (iteration 1): inputs are normalised so higher always means better governed — Trust = CTI, Risk = 100 − CREI, Compliance = CCS. <code>Governance score = Σ weight × normalised value</code>, with AHP weights. Score bands: <code>≥75 Approve · 60–74 Monitor · 40–59 Restrict · &lt;40 Reject</code>. The final verdict is the stricter of the score band and any override rule. Accountability follows the Three Lines model: 1st line owns and fixes, 2nd line oversees and challenges, 3rd line (internal audit) gives independent assurance. ATLAS mitigation IDs are indicative and should be checked against the current release. Inputs are simulated until integration with Components 1–3. Illustrative tool for PP1 — not a real institution's data.
+    Method (iteration 1): inputs are normalised so higher always means better governed — Trust = CTI, Risk = 100 − CREI, Compliance = CCS. <code>Governance score = Σ weight × normalised value</code>, with AHP weights. Score bands: <code>≥75 Approve · 60–74 Monitor · 40–59 Restrict · &lt;40 Reject</code>. The final verdict is the stricter of the score band and any override rule. Accountability follows the IIA Three Lines Model (Statement of Position, July 2026): 1st line owns and fixes, 2nd line oversees and challenges, 3rd line (internal audit) gives independent assurance. Each action is assigned with RACI (Responsible, Accountable, Consulted = 2nd-line reviewer, Informed = 3rd-line assurance). Checks (iteration 1): CHK-1 every action fully assigned (accountability coverage, target 100%); CHK-2 each person sits on the right line; CHK-3 reviewer and auditor are different people from the doer and owner; CHK-4 the verdict signer is not the system owner or an action owner. Decision authority rises with the verdict (Approve/Monitor: AI Governance Committee; Restrict: CRO; Reject: Board Integrated Risk Management Committee). Closing actions does not change the verdict by itself; the verdict changes only when C1–C3 reassess with the new evidence. The owner register is fictional. ATLAS mitigation IDs and names checked against ATLAS data release 5.6.0 on 21 October 2026. Inputs are simulated until integration with Components 1–3. Illustrative tool for PP1 — not a real institution's data.
   </div>
 </div>
 
@@ -272,31 +322,62 @@ function decide(x,w){
   return {norm,g,sb,v,by,fired};
 }
 
-// Control library: finding → control, reference, Three Lines routing
+// Owner register for the simulated Bank S. People are fictional. line: 1, 2, 3 or "Board"
+const ROLES={
+  HCA:{t:"Head of Retail Credit Analytics (model owner)",line:1,p:"N. Perera"},
+  MDL:{t:"Model development lead",line:1,p:"S. Fernando"},
+  DEL:{t:"Data engineering lead",line:1,p:"R. Silva"},
+  HCO:{t:"Head of Credit Operations (business owner)",line:1,p:"A. Jayawardena"},
+  HIT:{t:"Head of IT",line:1,p:"K. Wickramasinghe"},
+  ITSO:{t:"IT security operations manager",line:1,p:"M. Bandara"},
+  APL:{t:"Lending platform application lead",line:1,p:"D. Rathnayake"},
+  DCM:{t:"Digital channels manager",line:1,p:"T. Herath"},
+  VMM:{t:"Vendor management manager",line:1,p:"P. Dissanayake"},
+  MRM:{t:"Head of Model Risk Management",line:2,p:"L. Gunasekara"},
+  ISR:{t:"Information security risk manager (CISO office)",line:2,p:"H. Karunaratne"},
+  CMP:{t:"Head of Compliance",line:2,p:"J. Senanayake"},
+  TPR:{t:"Third-party risk manager",line:2,p:"C. Weerasinghe"},
+  CRO:{t:"Chief Risk Officer",line:2,p:"V. Abeysekara"},
+  IA:{t:"Chief Internal Auditor",line:3,p:"G. Ranasinghe"},
+  BRC:{t:"Chair, Board Integrated Risk Management Committee",line:"Board",p:"W. Samarasinghe"},
+};
+const LINE_NAME={1:"1st",2:"2nd",3:"3rd",Board:"Board"};
+
+// Control library: finding → control, reference, RACI routing by role
+// r = Responsible (does the work), a = Accountable (one owner), c = 2nd-line reviewer who signs off closure; 3rd-line assurance is internal audit for every action
 const CTRLS={
-  K1:{n:"Rate-limit and monitor model queries",ref:"ATLAS AML.M0004 Restrict Number of ML Model Queries",l1:"IT security operations",l2:"Information security risk",l3:"Internal audit"},
-  K2:{n:"Return less detail in outputs",ref:"ATLAS AML.M0002 Passive ML Output Obfuscation",l1:"Model owner",l2:"Model risk management",l3:"Internal audit"},
-  K3:{n:"Sanitise and verify training-data provenance",ref:"ATLAS AML.M0007 Sanitize Training Data",l1:"Data engineering lead",l2:"Model risk management",l3:"Internal audit"},
-  K4:{n:"Verify vendor / pre-trained model artefacts",ref:"ATLAS AML.M0014 Verify ML Artifacts",l1:"Vendor management + model owner",l2:"Third-party risk",l3:"Internal audit"},
-  K5:{n:"Validate inputs and detect adversarial inputs",ref:"ATLAS AML.M0015 Adversarial Input Detection",l1:"Application team",l2:"Information security risk",l3:"Internal audit"},
-  K6:{n:"Guardrails and input filtering on the assistant",ref:"OWASP LLM01 mitigations · D3FEND Input filtering",l1:"Digital channels team",l2:"Information security risk",l3:"Internal audit"},
-  K7:{n:"MFA and segregation on the retraining pipeline",ref:"D3FEND Multi-factor Authentication · HC-10",l1:"IT security operations",l2:"Information security risk",l3:"Internal audit"},
-  K8:{n:"Bias testing across groups each release",ref:"HC-08 · MAS FEAT Fairness",l1:"Model owner",l2:"Compliance",l3:"Internal audit"},
-  K9:{n:"Reason codes and adverse-action explanations",ref:"C1 Explainability · HC-05",l1:"Model owner",l2:"Compliance",l3:"Internal audit"},
-  K10:{n:"Tamper-evident decision logging",ref:"HC-04 · C1 Auditability",l1:"IT operations",l2:"Model risk management",l3:"Internal audit"},
-  K11:{n:"Independent model validation",ref:"HC-09 · SR 11-7",l1:"Model owner (provides evidence)",l2:"Model risk management (validates)",l3:"Internal audit"},
-  K13:{n:"Human oversight and appeal procedure",ref:"HC-06 · C1 Accountability",l1:"Head of credit operations",l2:"Compliance",l3:"Internal audit"},
-  K14:{n:"Drift monitoring with alert thresholds",ref:"C1 Robustness · NIST AI RMF Measure",l1:"Model owner",l2:"Model risk management",l3:"Internal audit"},
-  K15:{n:"AI risk register and named accountable owner",ref:"HC-01 · HC-12",l1:"Model owner",l2:"Chief risk officer",l3:"Internal audit"},
+  K1:{n:"Rate-limit and monitor model queries",ref:"ATLAS AML.M0004 Restrict Number of AI Model Queries",r:"ITSO",a:"HIT",c:"ISR"},
+  K2:{n:"Return less detail in outputs",ref:"ATLAS AML.M0002 Passive AI Output Obfuscation",r:"APL",a:"HCA",c:"MRM"},
+  K3:{n:"Sanitise and verify training-data provenance",ref:"ATLAS AML.M0007 Sanitize Training Data",r:"DEL",a:"HCA",c:"MRM"},
+  K4:{n:"Verify vendor / pre-trained model artefacts",ref:"ATLAS AML.M0014 Verify AI Artifacts",r:"VMM",a:"HCA",c:"TPR"},
+  K5:{n:"Validate inputs and detect adversarial inputs",ref:"ATLAS AML.M0015 Adversarial Input Detection",r:"APL",a:"HIT",c:"ISR"},
+  K6:{n:"Guardrails and input filtering on the assistant",ref:"OWASP LLM01:2025 Prompt Injection mitigations",r:"DCM",a:"HIT",c:"ISR"},
+  K7:{n:"MFA and segregation on the retraining pipeline",ref:"D3FEND D3-MFA Multi-factor Authentication · HC-10",r:"ITSO",a:"HIT",c:"ISR"},
+  K8:{n:"Bias testing across groups each release",ref:"HC-08 · MAS FEAT Fairness",r:"MDL",a:"HCA",c:"CMP"},
+  K9:{n:"Reason codes and adverse-action explanations",ref:"C1 Explainability · HC-05",r:"MDL",a:"HCA",c:"CMP"},
+  K10:{n:"Tamper-evident decision logging",ref:"HC-04 · C1 Auditability",r:"APL",a:"HIT",c:"MRM"},
+  K11:{n:"Independent model validation",ref:"HC-09 · SR 26-2 §V",r:"MDL",a:"HCA",c:"MRM"},
+  K13:{n:"Human oversight and appeal procedure",ref:"HC-06 · C1 Accountability",r:"HCO",a:"HCO",c:"CMP"},
+  K14:{n:"Drift monitoring with alert thresholds",ref:"C1 Robustness · NIST AI RMF Measure",r:"MDL",a:"HCA",c:"MRM"},
+  K15:{n:"AI risk register and named accountable owner",ref:"HC-01 · HC-12",r:"HCA",a:"HCO",c:"CRO"},
 };
 const SEV={High:3,Medium:2,Low:1};
+
+// Decision authority: stricter verdicts need a more senior decision-maker
+const AUTH={
+  Approve:{by:"AI Governance Committee (chaired by the CRO)",sign:"CRO",inf:["HCA","HCO","IA"],re:"12 months"},
+  Monitor:{by:"AI Governance Committee (chaired by the CRO)",sign:"CRO",inf:["HCA","HCO","MRM","IA"],re:"6 months, or sooner if a monitoring threshold is breached"},
+  Restrict:{by:"Chief Risk Officer; Board Integrated Risk Management Committee informed",sign:"CRO",inf:["BRC","HCA","HCO","IA"],re:"When every High action is closed, C1–C3 reassess; only the CRO lifts the restriction"},
+  Reject:{by:"Board Integrated Risk Management Committee, on the CRO's recommendation",sign:"BRC",inf:["CRO","HCA","HCO","IA"],re:"Full reassessment (C1–C3) before the system can be resubmitted"},
+};
+const STATUS=["Open","In progress","Done – awaiting sign-off","Closed – signed off","Overdue"];
 
 // Simulated scenarios: inputs + findings fed from C1–C3 (source, finding, severity, control)
 const SCEN={
   s1:{n:"S1 Strong on all three",exp:"Approve",x:{cti:92,crei:7,band:"Low",ccs:93},
     f:[["C2","T12 output-integrity in transit — residual 1×3","Low","K10"],["C3","HC-09 independent validation partially met","Low","K11"],["C3","HC-05 customer notice partially met","Low","K9"]]},
   s2:{n:"S2 Moderate",exp:"Monitor",x:{cti:66,crei:28,band:"Medium",ccs:63},
-    f:[["C1","Fairness 50/100 — bias tested once","Medium","K8"],["C1","Explainability 67/100 — reasons for declines only","Medium","K9"],["C2","T03 bureau-feed compromise — residual 3×4","Medium","K3"],["C3","HC-04 decision logging partially met","Medium","K10"],["C3","HC-09 independent validation not met","Medium","K11"]]},
+    f:[["C1","Fairness 50/100 — bias tested once","Medium","K8"],["C1","Explainability 67/100 — reasons for declines only","Medium","K9"],["C1","Auditability 67/100 — two indicators only partly evidenced","Medium","K10"],["C2","T03 bureau-feed compromise — residual 3×4","Medium","K3"],["C3","HC-04 decision logging partially met","Medium","K10"],["C3","HC-08 fairness and bias testing not met","Medium","K8"],["C3","HC-09 independent validation not met","Medium","K11"]]},
   s3:{n:"S3 Trusted but exposed",exp:"Monitor",x:{cti:90,crei:39,band:"High",ccs:88},
     f:[["C2","T08 evasion on online channel — residual 4×4 (C2 override OR-H)","High","K5"],["C2","T04 model extraction via public API — residual 3×4","Medium","K1"],["C2","T11 explanation leakage — residual 3×3","Medium","K2"],["C3","HC-06 human oversight partially met","Low","K13"]]},
   s4:{n:"S4 Hidden critical threat",exp:"Restrict",x:{cti:82,crei:70,band:"Critical",ccs:85},
@@ -304,11 +385,60 @@ const SCEN={
   s5:{n:"S5 Compliance gap",exp:"Restrict",x:{cti:78,crei:30,band:"Medium",ccs:45},
     f:[["C3","HC-06 human oversight and right to contest not met","High","K13"],["C3","HC-09 independent validation not met","Medium","K11"],["C3","HC-04 decision logging not met","Medium","K10"],["C3","HC-02 training-data governance partially met","Medium","K3"]]},
   s6:{n:"S6 Weak on all three",exp:"Reject",x:{cti:8,crei:85,band:"Critical",ccs:22},
-    f:[["C1","Explainability 0/100 — score only, no reasons","High","K9"],["C1","Fairness 0/100 — never tested for bias","High","K8"],["C1","Auditability 0/100 — decisions not logged","High","K10"],["C2","T01 poisoning, impact 5, no control","High","K3"],["C3","HC-01 AI risk management not met","High","K15"],["C3","HC-06 human oversight not met","High","K13"]]},
+    f:[["C1","Explainability 0/100 — score only, no reasons","High","K9"],["C1","Fairness 0/100 — never tested for bias","High","K8"],["C1","Auditability 0/100 — decisions not logged","High","K10"],["C2","T01 poisoning, impact 5, no control","High","K3"],["C3","HC-01 AI risk management not met","High","K15"],["C3","HC-04 decision logging not met","High","K10"],["C3","HC-06 human oversight not met","High","K13"],["C3","HC-08 fairness and bias testing not met","High","K8"]]},
 };
 
 const $=s=>document.querySelector(s);
-const state={sc:null,x:{},f:[]};
+const cloneReg=()=>Object.fromEntries(Object.entries(ROLES).map(([k,r])=>[k,{...r}]));
+const state={sc:null,x:{},f:[],st:{},reg:cloneReg()};
+
+// One action per control: findings that need the same control are merged
+function buildActions(f){
+  const m={};
+  f.forEach(([src,txt,sev,k],i)=>{const A=m[k]||(m[k]={k,sev,comps:[],finds:[],i});
+    if(SEV[sev]>SEV[A.sev])A.sev=sev;if(!A.comps.includes(src))A.comps.push(src);A.finds.push([src,txt,sev]);});
+  return Object.values(m).sort((a,b)=>SEV[b.sev]-SEV[a.sev]||b.comps.length-a.comps.length||a.i-b.i);
+}
+const routeOf=(k,ov={})=>({r:CTRLS[k].r,a:CTRLS[k].a,c:CTRLS[k].c,as:"IA",...(ov[k]||{})});
+// A role resolves to a person only if the role exists and has a name
+function who(reg,role){const R=role&&reg[role];return R&&R.p.trim()?{role,line:R.line,t:R.t,p:R.p.trim(),id:R.p.trim().toLowerCase()}:null;}
+
+// CHK-1 coverage · CHK-2 line placement · CHK-3 independence · CHK-4 verdict signer
+function checkAcc(acts,reg,verdict,ov={}){
+  const issues=[];
+  const rows=acts.map(A=>{const g=routeOf(A.k,ov),R=who(reg,g.r),Ac=who(reg,g.a),C=who(reg,g.c),S=who(reg,g.as),nm=CTRLS[A.k].n;
+    const miss=[!R&&"Responsible",!Ac&&"Accountable",!C&&"2nd-line reviewer",!S&&"3rd-line assurance"].filter(Boolean);
+    if(miss.length)issues.push({id:"CHK-1",k:A.k,t:`${nm}: no ${miss.join(", ")} named`});
+    const bad=[R&&R.line!==1&&`Responsible (${R.t}) is not 1st line`,Ac&&Ac.line!==1&&`Accountable (${Ac.t}) is not 1st line`,
+      C&&C.line!==2&&`reviewer (${C.t}) is not 2nd line`,S&&S.line!==3&&`assurance (${S.t}) is not 3rd line`].filter(Boolean);
+    if(bad.length)issues.push({id:"CHK-2",k:A.k,t:`${nm}: ${bad.join("; ")}`});
+    const doers=[R,Ac].filter(Boolean);
+    const same=(X,list)=>list.filter(Boolean).find(d=>d.id===X.id);
+    {const d=C&&same(C,doers);if(d)issues.push({id:"CHK-3",k:A.k,t:`${nm}: ${C.p} is both ${d.t} and the 2nd-line reviewer (${C.t}), so they would sign off their own work`});}
+    {const d=S&&same(S,[R,Ac,C]);if(d)issues.push({id:"CHK-3",k:A.k,t:`${nm}: ${S.p} is both ${d.t} and the auditor (${S.t}), so they would audit their own work`});}
+    return {A,g,R,Ac,C,S,full:!miss.length};});
+  const signer=who(reg,AUTH[verdict].sign),owner=who(reg,"HCA");
+  if(!signer)issues.push({id:"CHK-4",t:`Nobody is named to sign a ${verdict} decision`});
+  else if((owner&&owner.id===signer.id)||rows.some(r=>r.Ac&&r.Ac.id===signer.id))
+    issues.push({id:"CHK-4",t:`${signer.p} would sign the ${verdict} decision on a system they own or have open actions on`});
+  const coverage=rows.length?rows.filter(r=>r.full).length/rows.length*100:100;
+  // Advisory only: one person accountable for most High actions
+  const hi=rows.filter(r=>r.A.sev==="High"&&r.Ac),cnt={};hi.forEach(r=>cnt[r.Ac.id]=(cnt[r.Ac.id]||0)+1);
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  const advisory=top&&hi.length>=3&&top[1]/hi.length>0.5?`${hi.find(r=>r.Ac.id===top[0]).Ac.p} is accountable for ${top[1]} of ${hi.length} High actions — check they have the capacity`:null;
+  return {rows,issues,coverage,signer,advisory,has:id=>issues.some(i=>i.id===id)};
+}
+
+// Escalation rules fire from action status
+function escalate(rows,v,st){
+  const out=[],cro=who(state.reg,"CRO"),brc=who(state.reg,"BRC"),nm=p=>p?p.p:"(unassigned)";
+  rows.forEach(r=>{const s=st[r.A.k],n=CTRLS[r.A.k].n;
+    if(s==="Overdue"){out.push(["ESC-1",`${n}: overdue — ${nm(r.C)} (2nd line) escalates to ${nm(cro)}, Chief Risk Officer`]);
+      if(r.A.sev==="High"&&(v==="Approve"||v==="Monitor"))out.push(["ESC-2",`High action overdue under ${v} — the AI Governance Committee must consider moving the verdict to Restrict`]);
+      if(r.A.sev==="High"&&(v==="Restrict"||v==="Reject"))out.push(["ESC-3",`High action overdue under ${v} — ${nm(brc)} (board risk committee) is informed`]);}
+    if(s==="Done – awaiting sign-off")out.push(["ESC-4",`${n}: not counted as closed until ${nm(r.C)} (2nd line) signs it off`]);});
+  return out;
+}
 
 function dueFor(verdict,sev){
   if(verdict==="Reject")return sev==="High"?"Before any redeployment":"With remediation plan";
@@ -343,17 +473,55 @@ function render(){
   $("#overrides").innerHTML=D.fired.map(f=>`<div class="ov"><div class="st ${f.hit?"fail":"pass"}">${f.hit?"FIRED":"not fired"}</div>
     <div><b>${f.r.id}</b> → no better than ${f.r.cap}<br><span style="color:var(--muted)">${f.r.text}</span></div></div>`).join("");
 
-  const fs=state.f.map((f,i)=>({f,i})).sort((a,b)=>SEV[b.f[2]]-SEV[a.f[2]]||a.i-b.i);
-  $("#ctlBody").innerHTML=fs.length?fs.map(({f},k)=>{const C=CTRLS[f[3]];
-    return `<tr><td>P${k+1}</td><td>${f[0]}</td><td class="wrapc">${f[1]}</td><td class="sev-${f[2]}">${f[2]}</td><td class="wrapc">${C.n}</td><td class="wrapc">${C.ref}</td>
-      <td class="lod wrapc"><b>1st</b> ${C.l1}<br><b>2nd</b> ${C.l2}<br><b>3rd</b> ${C.l3}</td><td class="due">${dueFor(D.v,f[2])}</td></tr>`;}).join("")
+  const acts=buildActions(state.f),K=checkAcc(acts,state.reg,D.v);state.acts=acts;state.chk=K;
+  const multi=acts.filter(a=>a.comps.length>1).length;
+  $("#mergeNote").textContent=acts.length?`${state.f.length} findings → ${acts.length} actions${multi?` · ${multi} flagged by more than one component`:""}`:"";
+  const person=(lab,P)=>`<b>${lab}</b> ${P?`${P.p} <span style="color:var(--muted)">· ${P.t}</span>`:`<span class="fail">unassigned</span>`}`;
+  const stCls=s=>s==="Closed – signed off"?"st-closed":s==="Overdue"?"st-overdue":"";
+  $("#ctlBody").innerHTML=acts.length?K.rows.map((r,i)=>{const A=r.A,C=CTRLS[A.k],s=state.st[A.k]||"Open";
+    return `<tr><td>P${i+1}</td><td class="wrapc"><b>${C.n}</b><ul class="finds">${A.finds.map(f=>`<li><span class="sev-${f[2]}">${f[0]}</span> ${f[1]}</li>`).join("")}</ul></td>
+      <td>${A.comps.map(c=>`<span class="tag${A.comps.length>1?" multi":""}">${c}</span>`).join("")}</td><td class="sev-${A.sev}">${A.sev}</td><td class="wrapc">${C.ref}</td>
+      <td class="lod wrapc" style="min-width:220px">${person("A",r.Ac)}<br>${person("R",r.R)}<br>${person("2nd",r.C)}<br>${person("3rd",r.S)}</td>
+      <td class="due">${dueFor(D.v,A.sev)}</td>
+      <td><select class="status ${stCls(s)}" data-k="${A.k}" aria-label="Status of ${C.n}">${STATUS.map(o=>`<option${o===s?" selected":""}>${o}</option>`).join("")}</select></td></tr>`;}).join("")
     :`<tr><td colspan="8" style="color:var(--muted)">No findings fed in.</td></tr>`;
 
+  const nI=id=>K.issues.filter(i=>i.id===id).length,cOk=K.coverage===100;
+  $("#chkStats").innerHTML=`<div class="stat">Accountability coverage<b class="${cOk?"pass":"fail"}">${K.coverage.toFixed(0)}% ${cOk?"✓":"✗"}</b></div>
+    <div class="stat">Line placement issues<b class="${nI("CHK-2")?"fail":"pass"}">${nI("CHK-2")}</b></div>
+    <div class="stat">Independence conflicts<b class="${nI("CHK-3")?"fail":"pass"}">${nI("CHK-3")}</b></div>
+    <div class="stat">Verdict signer<b class="${nI("CHK-4")?"fail":"pass"}">${K.signer?K.signer.p:"none"} ${nI("CHK-4")?"✗":"✓"}</b></div>`;
+  const CHKS=[["CHK-1","Every action has a Responsible, an Accountable, a 2nd-line reviewer and 3rd-line assurance"],["CHK-2","Doers and owners are 1st line, reviewers 2nd line, assurance 3rd line"],
+    ["CHK-3","Nobody reviews or audits their own work"],["CHK-4",`The ${D.v} decision is signed by someone who does not own the system or its open actions`]];
+  $("#chkList").innerHTML=CHKS.map(([id,t])=>{const iss=K.issues.filter(i=>i.id===id);
+    return `<div class="chk"><div class="st ${iss.length?"fail":"pass"}">${iss.length?"FAIL":"pass"}</div><div><b>${id}</b> ${t}${iss.map(i=>`<br><span class="fail" style="font-weight:400">${i.t}</span>`).join("")}</div></div>`;}).join("")
+    +(K.advisory?`<div class="chk"><div class="st warn-t">advisory</div><div>${K.advisory}</div></div>`:"");
+
   $("#playbook").innerHTML=`<p><b style="color:${col}">${D.v}</b> — ${VMEAN[D.v].t}. Decision basis: score ${D.g.toFixed(1)} (${D.sb})${D.by?`, made stricter by ${D.by}`:""}.</p><ul class="play">${PLAY[D.v].map(t=>`<li>${t}</li>`).join("")}</ul>`;
+  const Au=AUTH[D.v],nm=r=>{const P=who(state.reg,r);return P?`${P.p} — ${P.t}`:`<span class="fail">unassigned</span>`;};
+  $("#auth").innerHTML=`<dt>Decided by</dt><dd>${Au.by}</dd><dt>Signed by</dt><dd>${nm(Au.sign)}</dd><dt>Informed</dt><dd>${Au.inf.map(nm).join("<br>")}</dd><dt>Next review</dt><dd>${Au.re}</dd>`;
+  const cnt=f=>[K.rows.filter(r=>f(r.A)).length,K.rows.filter(r=>f(r.A)&&state.st[r.A.k]==="Closed – signed off").length];
+  const [hN,hC]=cnt(a=>a.sev==="High"),[mN,mC]=cnt(a=>a.sev!=="Low"),[aN,aC]=cnt(()=>true);
+  const prog={Approve:`Actions closed ${aC}/${aN}. Open Low actions are closed by the next annual review.`,
+    Monitor:`High and Medium actions closed ${mC}/${mN}. All must close by their due dates; reassess in 6 months.`,
+    Restrict:`High actions closed ${hC}/${hN}. ${hN&&hC===hN?"All High actions are closed: C1–C3 can now reassess, and the CRO may lift the restriction.":"The restriction stays until every High action is closed and signed off by the 2nd line."}`,
+    Reject:`Actions closed ${aC}/${aN}. Every finding needs a closed action before C1–C3 reassess and the system can be resubmitted.`}[D.v];
+  const E=escalate(K.rows,D.v,state.st);
+  $("#progress").innerHTML=`<p style="margin:0 0 8px">${prog}</p><p style="margin:0 0 8px;color:var(--muted)">Closing actions does not change the verdict by itself. The verdict changes only when C1–C3 reassess the system with the new evidence.</p>`;
+  $("#escal").innerHTML=E.length?E.map(([id,t])=>`<div class="chk"><div class="st fail">${id}</div><div>${t}</div></div>`).join("")
+    :`<div class="chk"><div class="st pass">none</div><div style="color:var(--muted)">No escalation. Set an action to Overdue or Done to see the escalation rules fire.</div></div>`;
+
+  Object.keys(state.reg).forEach(r=>{const a=$("#ra-"+r),c=$("#rc-"+r);
+    if(a)a.textContent=K.rows.filter(x=>x.g.a===r).length||"—";if(c)c.textContent=K.rows.filter(x=>x.g.c===r).length||"—";});
   document.querySelectorAll("[data-sc]").forEach(b=>b.classList.toggle("on",b.dataset.sc===state.sc));
 }
 
-function loadScenario(k){const S=SCEN[k];state.sc=k;state.x={...S.x};state.f=S.f.map(f=>f.slice());render();}
+function buildRegister(){
+  $("#regBody").innerHTML=Object.entries(state.reg).map(([k,R])=>`<tr><td class="wrapc">${R.t}</td><td class="line">${LINE_NAME[R.line]}</td>
+    <td><input data-role="${k}" value="${R.p}" aria-label="Person in role ${R.t}"></td><td class="num" id="ra-${k}"></td><td class="num" id="rc-${k}"></td></tr>`).join("");
+}
+
+function loadScenario(k){const S=SCEN[k];state.sc=k;state.x={...S.x};state.f=S.f.map(f=>f.slice());state.st={};render();}
 
 function buildTestCases(){
   $("#tcBody").innerHTML=Object.entries(SCEN).map(([k,S])=>{
@@ -363,6 +531,28 @@ function buildTestCases(){
       <td class="num">${S.x.cti}</td><td class="num">${S.x.crei}</td><td>${S.x.band}</td><td class="num">${S.x.ccs}</td><td class="num">${D.g.toFixed(1)}</td><td>${D.sb}</td><td>${D.by||"—"}</td>
       <td>${S.exp}</td><td><b>${D.v}</b></td><td class="${D.v===S.exp?"pass":"fail"}">${D.v===S.exp?"PASS":"FAIL"}</td>
       <td>${flips.length?`<span class="fail">Changes under ${flips.join(", ")}</span>`:"<span class='pass'>Stable (12 of 12 variations)</span>"}</td></tr>`;}).join("");
+}
+// Accountability tests: each runs on a copy of the register / routing, with the expected check result fixed in advance
+const ATESTS=[
+  {id:"AT1",sc:"s6",n:"Nothing changed — default register",exp:"Coverage 100%, no failed checks",
+    run:K=>[K.coverage===100&&!K.issues.length,`coverage ${K.coverage.toFixed(0)}%, ${K.issues.length} failed checks`]},
+  {id:"AT2",sc:"s6",n:"The model owner is also named Head of Model Risk",reg:R=>{R.MRM.p=R.HCA.p;},exp:"CHK-3 independence conflict",
+    run:K=>[K.has("CHK-3"),K.has("CHK-3")?"CHK-3 flagged":"not flagged"]},
+  {id:"AT3",sc:"s6",n:"Internal audit made Responsible for decision logging",ov:{K10:{r:"IA"}},exp:"CHK-2 line placement",
+    run:K=>[K.has("CHK-2"),K.has("CHK-2")?"CHK-2 flagged":"not flagged"]},
+  {id:"AT4",sc:"s6",n:"No accountable owner for the AI risk register",ov:{K15:{a:null}},exp:"CHK-1, coverage below 100%",
+    run:K=>[K.has("CHK-1")&&K.coverage<100,`coverage ${K.coverage.toFixed(0)}%`]},
+  {id:"AT5",sc:"s4",n:"The CRO who signs the verdict is also the model owner",reg:R=>{R.CRO.p=R.HCA.p;},exp:"CHK-4 signer conflict",
+    run:K=>[K.has("CHK-4"),K.has("CHK-4")?"CHK-4 flagged":"not flagged"]},
+  {id:"AT6",sc:"s6",n:"Merge: 8 findings from C1–C3",exp:"6 actions, 2 flagged by C1 and C3",
+    run:(K,A)=>{const m=A.filter(a=>a.comps.length>1).length;return [A.length===6&&m===2,`${A.length} actions, ${m} multi-component`];}},
+  {id:"AT7",sc:"s3",n:"A High action is overdue under Monitor",st:{K5:"Overdue"},exp:"ESC-1 and ESC-2 fire",
+    run:(K,A,v,st)=>{const e=escalate(K.rows,v,st).map(x=>x[0]);return [e.includes("ESC-1")&&e.includes("ESC-2"),e.join(", ")||"none"];}},
+];
+function buildAccTests(){
+  $("#atBody").innerHTML=ATESTS.map(T=>{const S=SCEN[T.sc],reg=cloneReg();if(T.reg)T.reg(reg);
+    const A=buildActions(S.f),v=decide(S.x,W).v,K=checkAcc(A,reg,v,T.ov||{}),[ok,act]=T.run(K,A,v,T.st||{});
+    return `<tr><td>${T.id}</td><td class="wrapc">${S.n.split(" ")[0]} · ${T.n}</td><td class="wrapc">${T.exp}</td><td class="wrapc">${act}</td><td class="${ok?"pass":"fail"}">${ok?"PASS":"FAIL"}</td></tr>`;}).join("");
 }
 function buildAHP(){
   const short=["T","R","C"];
@@ -392,14 +582,22 @@ function bandFromCrei(c){return c>=75?"Critical":c>=50?"High":c>=25?"Medium":"Lo
 // C2 overrides can only raise a band, so the band can never sit below the band its CREI implies
 $("#band").addEventListener("change",e=>{const o=["Low","Medium","High","Critical"],ib=bandFromCrei(state.x.crei);state.x.band=o.indexOf(e.target.value)<o.indexOf(ib)?ib:e.target.value;state.sc=null;render();});
 document.addEventListener("click",e=>{const s=e.target.closest("[data-sc]");if(s)loadScenario(s.dataset.sc);});
+document.addEventListener("change",e=>{const s=e.target.closest("select.status");if(s){state.st[s.dataset.k]=s.value;render();}});
+$("#regBody").addEventListener("input",e=>{const r=e.target.dataset.role;if(r){state.reg[r].p=e.target.value;render();}});
+$("#regReset").addEventListener("click",()=>{state.reg=cloneReg();buildRegister();render();});
 $("#copyBtn").addEventListener("click",async()=>{
   const D=state.last,x=state.x;
   const lines=["Governance decision record — Simulated AI-enabled credit-scoring system",
     `Verdict: ${D.v} (${VMEAN[D.v].t})`,
     `Inputs (simulated): CTI ${x.cti} · CREI ${x.crei} (${x.band}) · CCS ${x.ccs}%`,
     `Score: ${D.g.toFixed(1)} → ${D.sb} · weights T ${W[0]} / R ${W[1]} / C ${W[2]} (AHP CR ${AHP.CR.toFixed(4)})`,
-    `Overrides fired: ${D.fired.filter(f=>f.hit).map(f=>f.r.id).join(", ")||"none"}${D.by?` · decisive: ${D.by}`:""}`,"","Prioritised controls:"];
-  state.f.slice().sort((a,b)=>SEV[b[2]]-SEV[a[2]]).forEach((f,k)=>{const C=CTRLS[f[3]];lines.push(`  P${k+1} [${f[2]}] ${C.n} — 1st: ${C.l1}; 2nd: ${C.l2}; 3rd: ${C.l3}; due: ${dueFor(D.v,f[2])}`);});
+    `Overrides fired: ${D.fired.filter(f=>f.hit).map(f=>f.r.id).join(", ")||"none"}${D.by?` · decisive: ${D.by}`:""}`];
+  const K=state.chk,Au=AUTH[D.v],P=r=>{const p=who(state.reg,r);return p?`${p.p} — ${p.t}`:"unassigned";},N=p=>p?p.p:"unassigned";
+  lines.push(`Decided by: ${Au.by} · signed by ${P(Au.sign)}`,`Informed: ${Au.inf.map(P).join("; ")}`,`Next review: ${Au.re}`,"",
+    `Prioritised actions (${state.f.length} findings → ${K.rows.length} actions):`);
+  K.rows.forEach((r,k)=>lines.push(`  P${k+1} [${r.A.sev}] ${CTRLS[r.A.k].n} (from ${r.A.comps.join(" + ")}) — A: ${N(r.Ac)}; R: ${N(r.R)}; 2nd-line sign-off: ${N(r.C)}; 3rd-line assurance: ${N(r.S)}; due: ${dueFor(D.v,r.A.sev)}; status: ${state.st[r.A.k]||"Open"}`));
+  lines.push("",`Accountability coverage: ${K.coverage.toFixed(0)}% · failed checks: ${K.issues.map(i=>i.id).join(", ")||"none"}`);
+  const E=escalate(K.rows,D.v,state.st);if(E.length)lines.push("Escalations:",...E.map(([id,t])=>`  ${id} ${t}`));
   const txt=lines.join("\n");
   const done=()=>{$("#copyBtn").textContent="Copied ✓";setTimeout(()=>$("#copyBtn").textContent="Copy decision record",1600);};
   try{await navigator.clipboard.writeText(txt);done();}
@@ -407,5 +605,5 @@ $("#copyBtn").addEventListener("click",async()=>{
     const r=document.createRange();r.selectNode(p);getSelection().removeAllRanges();getSelection().addRange(r);try{document.execCommand("copy");}catch(e){}document.body.removeChild(p);done();}
 });
 
-buildTestCases();buildAHP();loadScenario("s4");
+buildTestCases();buildAccTests();buildAHP();buildRegister();loadScenario("s4");
 </script>

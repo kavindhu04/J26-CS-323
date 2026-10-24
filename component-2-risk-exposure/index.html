@@ -224,7 +224,7 @@
   </section>
 
   <div class="foot">
-    Method (iteration 1): residual exposure per threat = residual likelihood × impact (1–25). Layer exposure = mean of its included threats, scaled to 100. Threat index = layers averaged with equal weight. Context modifier = 0.7 + 0.1 × (weighted context score − 1), so a 1–5 context gives ×0.7 to ×1.1. <code>CREI = threat index × context modifier</code>, capped at 100. Bands: <code>0–24 Low · 25–49 Medium · 50–74 High · 75–100 Critical</code>. Override rules can raise the band, never lower it (Table 4.3). Context weights are the Table 4.2 defaults; the delivered weights come from the two-round Delphi. Threat vocabulary from MITRE ATLAS, NIST AI 100-2e2025 and the OWASP Top 10 for LLM Applications; ATLAS IDs are indicative and should be checked against the current release. Illustrative tool for PP1 — the asset, ratings and controls are simulated, not a real institution's data.
+    Method (iteration 1): residual exposure per threat = residual likelihood × impact (1–25). Layer exposure = mean of its included threats, scaled to 100. Threat index = layers averaged with equal weight. Context modifier = 0.7 + 0.1 × (weighted context score − 1), so a 1–5 context gives ×0.7 to ×1.1. <code>CREI = threat index × context modifier</code>, capped at 100. Bands: <code>0–24 Low · 25–49 Medium · 50–74 High · 75–100 Critical</code>. Override rules can raise the band, never lower it (Table 4.3). Context weights are the Table 4.2 defaults; the delivered weights come from the two-round Delphi. Threat vocabulary from MITRE ATLAS, NIST AI 100-2e2025 and the OWASP Top 10 for LLM Applications (2025); ATLAS IDs checked against ATLAS data release 5.6.0 on 21 October 2026 (T06 maps to AML.T0018 Manipulate AI Model). Illustrative tool for PP1 — the asset, ratings and controls are simulated, not a real institution's data.
   </div>
 </div>
 
@@ -245,11 +245,11 @@ const THREATS=[
   {id:"T06",n:"Backdoor / trojan insertion",l:"L2",src:"ATLAS AML.T0018",rule:p=>[true,"Any retrainable model can be backdoored"]},
   {id:"T07",n:"Compromised vendor / pre-trained component",l:"L2",src:"ATLAS AML.T0010",rule:p=>p.model!=="In-house"?[true,"Relies on an outside model"]:[false,"Model built in-house"]},
   {id:"T08",n:"Evasion / adversarial input crafting",l:"L3",src:"ATLAS AML.T0015",rule:p=>p.applicantInputs?[true,"Applicant controls input features"]:[false,"Inputs come from internal records"]},
-  {id:"T09",n:"Prompt injection",l:"L3",src:"ATLAS AML.T0051 · OWASP LLM01",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
+  {id:"T09",n:"Prompt injection",l:"L3",src:"ATLAS AML.T0051 · OWASP LLM01:2025",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
   {id:"T10",n:"Abuse of integration credentials",l:"L3",src:"ATLAS AML.T0012",rule:p=>p.extIntegrations?[true,"External API integrations"]:[false,"Internal integrations only"]},
   {id:"T11",n:"Confidence / explanation leakage",l:"L4",src:"NIST AI 100-2e2025",rule:p=>p.extQuery&&p.explains?[true,"Explanations returned to outside parties"]:[false,"No explanations leave the bank"]},
   {id:"T12",n:"Output-integrity compromise in transit",l:"L4",src:"NIST AI 100-2e2025",rule:p=>[true,"Decisions always flow to the loan system"]},
-  {id:"T13",n:"Sensitive information disclosure by assistant",l:"L4",src:"OWASP LLM02",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
+  {id:"T13",n:"Sensitive information disclosure by assistant",l:"L4",src:"OWASP LLM02:2025",gen:true,rule:p=>p.generative?[true,"Generative component present"]:[false,"No generative component"]},
 ];
 const CTRL=["Absent","Partial","Effective","Strong"]; // step 0–3 off likelihood
 const FACTORS=[
