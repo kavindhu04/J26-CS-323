@@ -233,7 +233,7 @@
   </section>
 
   <div class="foot">
-    Formula: <code>CCS = Σ(Wᵢ · Aᵢ · Sᵢ) / Σ(Wᵢ · Aᵢ) × 100</code>. W = control weight (3 = high impact, 2 = standard; iteration 1, to be validated by expert review and sensitivity analysis). A = 1 if the control applies to the asset in the current scope, else 0. S = Met 1 · Partially met 0.5 · Not met 0. Relationship taxonomy: Equivalent, Overlapping, Complementary, Unique, Conditional, Potentially Conflicting. Clause references are indicative and must be checked against each source's current text. A mapping is not evidence of compliance: status comes only from the evidence assessment. Illustrative tool for PP1 — the asset, evidence and statuses are simulated, not a real institution's data.
+    Formula: <code>CCS = Σ(Wᵢ · Aᵢ · Sᵢ) / Σ(Wᵢ · Aᵢ) × 100</code>. W = control weight (3 = high impact, 2 = standard; iteration 1, to be validated by expert review and sensitivity analysis). A = 1 if the control applies to the asset in the current scope, else 0. S = Met 1 · Partially met 0.5 · Not met 0. Relationship taxonomy: Equivalent, Overlapping, Complementary, Unique, Conditional, Potentially Conflicting. Source references were checked online on 21 October 2026 (simulated evidence pack, Section 8); ISO/IEC 42001 is cited at Annex A control-area level because the standard's full text is paid. A mapping is not evidence of compliance: status comes only from the evidence assessment. Illustrative tool for PP1 — the asset, evidence and statuses are simulated, not a real institution's data.
   </div>
 </div>
 
@@ -241,8 +241,8 @@
 const SOURCES={
   EUAI:{n:"EU AI Act (Reg. (EU) 2024/1689)",t:"Binding law",j:"EU",eu:true},
   GDPR:{n:"GDPR (Reg. (EU) 2016/679)",t:"Binding law",j:"EU",eu:true},
-  FSAI:{n:"US Treasury FS AI RMF",t:"Sector guidance",j:"US"},
-  SR117:{n:"Fed/OCC model-risk guidance (SR 11-7)",t:"Supervisory guidance",j:"US"},
+  FSAI:{n:"FS AI RMF (US Treasury, Cyber Risk Institute and FSSCC, 2026)",t:"Sector guidance",j:"US"},
+  SR262:{n:"Fed/OCC/FDIC model-risk guidance (SR 26-2)",t:"Supervisory guidance",j:"US"},
   ISO:{n:"ISO/IEC 42001:2023",t:"International standard",j:"Intl"},
   NAIR:{n:"NIST AI RMF 1.0",t:"Voluntary framework",j:"US"},
   CSF:{n:"NIST CSF 2.0",t:"Voluntary framework",j:"US"},
@@ -253,19 +253,19 @@ const LAYERS=[{k:"L1",n:"Training data"},{k:"L2",n:"AI model"},{k:"L3",n:"Inputs
 const CTL=[
   {id:"HC-01",n:"AI risk-management process",obj:"Identify, assess and treat AI risks across the lifecycle",l:["L1","L2","L3","L4"],w:3,ev:"AI risk register and risk assessment",owner:"Model owner (1st line)",rem:"Set up an AI risk register and assess the system against it",
     f:["risk register exists, not yet reviewed","risk register reviewed and approved"],
-    links:[["EUAI","Art. 9 Risk management system","Equivalent"],["ISO","Cl. 6.1 Actions to address risks","Equivalent"],["NAIR","GOVERN / MAP / MANAGE","Overlapping"],["FSAI","AI risk-management practices","Overlapping"],["SR117","Model risk-management framework","Complementary"]]},
+    links:[["EUAI","Art. 9 Risk management system","Equivalent"],["ISO","Annex A.5 Assessing impacts of AI systems","Overlapping"],["NAIR","GOVERN / MAP / MANAGE","Overlapping"],["FSAI","AI risk-management practices","Overlapping"],["SR262","§VI Governance and controls","Complementary"]]},
   {id:"HC-02",n:"Training-data governance and quality",obj:"Training data is relevant, accurate, documented and lawfully used",l:["L1"],w:3,ev:"Data sheet and data-quality report",owner:"Data engineering lead (1st line)",rem:"Document data lineage and run data-quality checks per release",
     f:["data sheet without quality checks","data sheet plus quality report"],
     links:[["EUAI","Art. 10 Data and data governance","Equivalent"],["ISO","Annex A.7 Data for AI systems","Equivalent"],["NAIR","MAP / MEASURE","Overlapping"],["GDPR","Art. 5(1)(c)–(d) Minimisation, accuracy","Complementary"]]},
   {id:"HC-03",n:"Technical documentation and model inventory",obj:"The model is documented and listed in the model inventory",l:["L2"],w:2,ev:"Model card and inventory entry",owner:"Model owner (1st line)",rem:"Complete the model card and register the model",
     f:["model card missing limitations","complete model card, in inventory"],
-    links:[["EUAI","Art. 11 Technical documentation","Equivalent"],["SR117","Model documentation and inventory","Overlapping"],["ISO","Annex A.6 AI system life cycle","Overlapping"]]},
+    links:[["EUAI","Art. 11 Technical documentation","Equivalent"],["SR262","§VI Model inventory; Documentation","Overlapping"],["ISO","Annex A.6 AI system life cycle","Overlapping"]]},
   {id:"HC-04",n:"Decision logging and record-keeping",obj:"Each decision is logged with inputs, model version and time",l:["L4"],w:2,ev:"Decision-log extract and retention policy",owner:"IT operations (1st line)",rem:"Log inputs and model version; make logs tamper-evident",
     f:["outcomes logged, no model version","full decision log, retained"],
-    links:[["EUAI","Art. 12 Record-keeping","Equivalent"],["CSF","PR.PS Platform security (logging)","Overlapping"],["SR117","Records for model validation","Complementary"],["GDPR","Art. 5(1)(e) Storage limitation","Conflicting"]]},
+    links:[["EUAI","Art. 12 Record-keeping","Equivalent"],["CSF","PR.PS Platform security (logging)","Overlapping"],["SR262","§VI Documentation","Complementary"],["GDPR","Art. 5(1)(e) Storage limitation","Conflicting"]]},
   {id:"HC-05",n:"Notice of AI use to customers",obj:"Customers are told AI is used and what drives the decision",l:["L4"],w:2,ev:"Customer disclosure notice",owner:"Retail credit product owner (1st line)",rem:"Publish a plain-language notice of the main decision factors",
     f:["generic 'AI-assisted' statement","notice explains the key factors"],
-    links:[["EUAI","Art. 13 Transparency","Overlapping"],["GDPR","Art. 13–14 Information to data subjects","Overlapping"],["FEAT","Transparency principles","Overlapping"]]},
+    links:[["EUAI","Art. 26(11) Informing affected persons; Art. 86 Right to explanation","Overlapping"],["GDPR","Art. 13–14 Information to data subjects","Overlapping"],["FEAT","Transparency principles","Overlapping"]]},
   {id:"HC-06",n:"Human oversight and right to contest",obj:"A human can review, override and explain contested decisions",l:["L4"],w:3,ev:"Override procedure and appeal log",owner:"Head of credit operations (1st line)",rem:"Document the override and appeal procedure and log every override",
     f:["overrides allowed, not logged","procedure, logged and reviewed"],
     links:[["EUAI","Art. 14 Human oversight","Overlapping"],["GDPR","Art. 22 Automated decision-making","Overlapping"],["FEAT","Accountability principles","Complementary"],["NAIR","MANAGE","Complementary"]]},
@@ -277,16 +277,16 @@ const CTL=[
     links:[["FEAT","Fairness principles","Equivalent"],["NAIR","MEASURE (harmful bias)","Overlapping"],["EUAI","Art. 10 Examination for bias","Overlapping"]]},
   {id:"HC-09",n:"Independent model validation",obj:"A party independent of development validates the model",l:["L2"],w:2,ev:"Independent validation report",owner:"Model risk management (2nd line)",rem:"Commission a 2nd-line validation before redeployment",
     f:["self-review by developers","independent 2nd-line validation"],
-    links:[["SR117","Independent validation","Unique"],["ISO","Cl. 9.2 Internal audit","Complementary"]]},
+    links:[["SR262","§III Effective challenge; §V Model validation","Unique"],["ISO","Annex A.6 AI system life cycle","Complementary"]]},
   {id:"HC-10",n:"Access control for model and pipeline",obj:"Only authorised, authenticated people can change the model or data",l:["L2","L3"],w:2,ev:"Access review and MFA configuration",owner:"IT security operations (1st line)",rem:"Enforce MFA and quarterly access reviews on the retraining pipeline",
     f:["MFA on, no access review","MFA plus quarterly access review"],
-    links:[["CSF","PR.AA Identity and access control","Equivalent"],["GDPR","Art. 32 Security of processing","Overlapping"],["FSAI","Access and security controls","Overlapping"]]},
+    links:[["CSF","PR.AA Identity Management, Authentication, and Access Control","Equivalent"],["GDPR","Art. 32 Security of processing","Overlapping"],["FSAI","Access and security controls","Overlapping"]]},
   {id:"HC-11",n:"Data-protection impact assessment",obj:"A formal impact assessment is done before high-risk processing",l:["L1"],w:2,ev:"DPIA / FRIA document",owner:"Data protection officer (2nd line)",rem:"Complete a DPIA and fundamental-rights impact assessment",
     f:["draft DPIA","approved DPIA"],
     links:[["GDPR","Art. 35 DPIA","Conditional"],["EUAI","Art. 27 Fundamental-rights impact assessment","Conditional"]]},
   {id:"HC-12",n:"AI governance roles and accountability",obj:"Named roles own the AI system and its oversight",l:["L1","L2","L3","L4"],w:2,ev:"Model ownership register and RACI",owner:"Chief risk officer (2nd line)",rem:"Name an accountable owner and publish the RACI",
     f:["team named, no accountable role","named owner signed off"],
-    links:[["ISO","Cl. 5.3 Roles and responsibilities","Equivalent"],["NAIR","GOVERN","Equivalent"],["CSF","GV.RR Roles and responsibilities","Overlapping"],["FEAT","Accountability principles","Overlapping"],["FSAI","Governance and accountability","Overlapping"]]},
+    links:[["ISO","Annex A.3 Internal organization","Equivalent"],["NAIR","GOVERN","Equivalent"],["CSF","GV.RR Roles, Responsibilities, and Authorities","Overlapping"],["FEAT","Accountability principles","Overlapping"],["FSAI","Governance and accountability","Overlapping"]]},
 ];
 CTL.forEach((C,i)=>C.evCode="EV-"+String(i+1).padStart(2,"0"));
 const CONFLICTS=[
@@ -394,7 +394,7 @@ function payload(R,gaps){
     gap_register:gaps.map((g,k)=>({gap:"G-"+String(k+1).padStart(2,"0"),control:g.C.id,name:g.C.n,status:ST[state.s[g.i]],priority:priLabel(g.pri),layers:g.C.l,owner:g.C.owner})),
     open_conflicts:CONFLICTS.filter(F=>srcApplies(F.a[0],state.eu)&&srcApplies(F.b[0],state.eu)).map(F=>F.id),
     metadata:{assessment_date:new Date().toISOString().slice(0,10),assessor:"PP1 demo",methodology_version:"CCS iteration 1",weighting_scheme:"3 = high impact, 2 = standard (pre-expert review)"},
-    limitation_statement:"Simulated evidence; clause references indicative; CCS is a governance indicator, not a legal certification."
+    limitation_statement:"Simulated evidence; source references checked 21 Oct 2026; CCS is a governance indicator, not a legal certification."
   };
 }
 function buildBaselines(R){
