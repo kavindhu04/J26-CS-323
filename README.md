@@ -63,7 +63,7 @@ C1, C2 and C3 each display the data they would send to C4 (display only).
 - **Simulated evidence.** The credit-scoring system, its evidence and the assessor ratings are simulated for demonstration.
 - **Placeholder expert judgements.** The AHP judgements in C1 and C4 are illustrative until the structured expert review is complete. C2's context weights are the proposal's default values until the Delphi review.
 - **Iteration-1 formulas.** Where the proposal reports do not fix an exact formula, each tool states the one it uses in its footer. These are refined after expert review.
-- **References checked at source level.** Standard references were checked online on 21 October 2026 and eight were corrected (for example SR 11-7 → SR 26-2, current MITRE ATLAS names). ISO/IEC 42001 is cited at Annex A control-area level only, because the full text is paid. Each owner still checks the clause-level references in their own tool against the source text.
+- **References checked at source level.** Standard references were checked online on 21 October 2026 and eight were corrected (for example SR 11-7 → SR 26-2, current MITRE ATLAS names). ISO/IEC 42001 is cited at Annex A control-area level only, because the full text is paid.
 - **Simulated evidence pack.** `evidence-pack/` holds the Simulated Evidence Pack v1.1, generated from the four tools' own data, so the pack and the tools cannot drift apart.
 
 ## Validation plan
